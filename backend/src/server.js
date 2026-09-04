@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import express from "express";
-import ffprobePath from "ffprobe-static";
+import ffprobeStatic from "ffprobe-static";
 import { CloudTasksClient } from "@google-cloud/tasks";
 import { authMiddleware, httpError, verifyAppCheck, verifyRegistrationRequest } from "./auth.js";
 import { loadTokenMixKeys } from "./config.js";
@@ -18,6 +18,10 @@ const store = createStore();
 const storage = new UploadStorage();
 const authenticate = authMiddleware(store, { requireAppCheck: process.env.REQUIRE_APP_CHECK === "true" });
 const execFileAsync = promisify(execFile);
+const ffprobeExecutable = typeof ffprobeStatic === "string" ? ffprobeStatic : ffprobeStatic?.path;
+if (typeof ffprobeExecutable !== "string" || !ffprobeExecutable) {
+  throw new Error("ffprobe-static did not provide an executable path.");
+}
 const onlineEnabled = () => process.env.ONLINE_SERVICE_ENABLED !== "false";
 const developmentAccessMode = process.env.DEVELOPMENT_ACCESS_MODE === "true";
 const provider = new ProviderPool({
@@ -205,7 +209,7 @@ async function dispatchJob(jobId) {
 }
 
 async function probeDuration(filePath) {
-  const { stdout } = await execFileAsync(ffprobePath, ["-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", filePath], { timeout: 15_000 });
+  const { stdout } = await execFileAsync(ffprobeExecutable, ["-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", filePath], { timeout: 15_000 });
   return Number(String(stdout).trim());
 }
 
