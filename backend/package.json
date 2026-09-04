@@ -1,0 +1,24 @@
+{
+  "name": "trispeech-v1-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --env-file=.env src/server.js",
+    "test": "node --test",
+    "check": "node --check src/server.js && node --check src/store.js && node --check src/provider.js && node --check src/config.js"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^8.0.1",
+    "@google-cloud/firestore": "^8.0.0",
+    "@google-cloud/tasks": "^6.1.0",
+    "express": "^5.1.0",
+    "ffprobe-static": "^3.1.0",
+    "jose": "^6.1.0"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
+  }
+}

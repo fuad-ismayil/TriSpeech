@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: trispeech-preview-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: USE_MEMORY_STORE
+        value: "true"
+      - key: DEVELOPMENT_ACCESS_MODE
+        value: "true"
+      - key: REQUIRE_APP_CHECK
+        value: "false"
+      - key: ONLINE_SERVICE_ENABLED
+        value: "true"
+      - key: PROVIDER_MAX_CONCURRENCY
+        value: "2"
+      - key: PROVIDER_DAILY_BUDGET_USD
+        value: "1"
+      - key: PROVIDER_MINUTE_COST_USD
+        value: "0.0035"
+      - key: INTERNAL_TASK_TOKEN
+        generateValue: true
+      - key: TOKENMIX_KEY_1
+        sync: false
+      - key: TOKENMIX_KEY_2
+        sync: false

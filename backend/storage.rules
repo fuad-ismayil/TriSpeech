@@ -1,0 +1,7 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // All temporary media moves through the authenticated Cloud Run API.
+    match /{object=**} { allow read, write: if false; }
+  }
+}

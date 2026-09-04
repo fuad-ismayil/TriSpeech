@@ -1,0 +1,3 @@
+-keep class com.trispeech.app.nativebridge.** { *; }
+-keepclasseswithmembernames class * { native <methods>; }
+-dontwarn org.conscrypt.**

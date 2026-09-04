@@ -1,0 +1,7 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Android has no direct Firestore access. Cloud Run uses IAM/Admin credentials.
+    match /{document=**} { allow read, write: if false; }
+  }
+}
