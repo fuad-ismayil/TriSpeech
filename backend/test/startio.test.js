@@ -7,7 +7,8 @@ test("Start.io requires explicit opt-in and rejects a preview bypass", () => {
   assert.equal(rewardConfig({ AD_PROVIDER: "startio" }).clientRewards, false);
   assert.throws(() => rewardConfig({ AD_PROVIDER: "startio", STARTIO_CLIENT_REWARDS_ENABLED: "true", DEVELOPMENT_ACCESS_MODE: "true" }), /cannot be combined/);
   assert.throws(() => rewardConfig({ STARTIO_REWARD_SECONDS: "NaN" }), /integer/);
-  assert.throws(() => rewardConfig({ AD_PROVIDER: "startio", STARTIO_CLIENT_REWARDS_ENABLED: "true", USE_MEMORY_STORE: "true" }), /Firestore/);
+  assert.throws(() => rewardConfig({ AD_PROVIDER: "startio", STARTIO_CLIENT_REWARDS_ENABLED: "true", USE_MEMORY_STORE: "true" }), /durable infrastructure/);
+  assert.equal(rewardConfig({ AD_PROVIDER: "startio", STARTIO_CLIENT_REWARDS_ENABLED: "true", STARTIO_TEST_REWARDS: "false", USE_MEMORY_STORE: "true", ALLOW_EPHEMERAL_LIVE_REWARDS: "true", PROVIDER_DAILY_BUDGET_USD: "1" }).clientRewards, true);
   assert.equal(rewardConfig({ AD_PROVIDER: "startio", STARTIO_TEST_REWARDS: "true", STARTIO_CLIENT_REWARDS_ENABLED: "true", USE_MEMORY_STORE: "true" }).seconds, 60);
 });
 

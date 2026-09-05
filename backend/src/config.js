@@ -31,8 +31,10 @@ export function rewardConfig(env = process.env) {
     throw new Error("Start.io credit access cannot be combined with DEVELOPMENT_ACCESS_MODE.");
   }
   if (provider === "startio" && clientRewards && !testRewards && env.NODE_ENV !== "test") {
-    if (env.USE_MEMORY_STORE === "true" || !env.FIREBASE_PROJECT_ID || !env.UPLOAD_BUCKET || !env.CLOUD_TASKS_QUEUE || !env.WORKER_URL) {
-      throw new Error("Live Start.io rewards require Firestore, durable uploads and Cloud Tasks. Use STARTIO_TEST_REWARDS=true for local integration tests.");
+    const ephemeralLive = env.ALLOW_EPHEMERAL_LIVE_REWARDS === "true";
+    const missingDurableInfrastructure = env.USE_MEMORY_STORE === "true" || !env.FIREBASE_PROJECT_ID || !env.UPLOAD_BUCKET || !env.CLOUD_TASKS_QUEUE || !env.WORKER_URL;
+    if ((!ephemeralLive && missingDurableInfrastructure) || (ephemeralLive && env.USE_MEMORY_STORE !== "true")) {
+      throw new Error("Live Start.io rewards require durable infrastructure, unless ALLOW_EPHEMERAL_LIVE_REWARDS=true is explicitly enabled for a short smoke test.");
     }
     const budget = Number(env.PROVIDER_DAILY_BUDGET_USD);
     if (!(budget > 0 && budget <= 1)) throw new Error("The Start.io experiment requires a positive daily backend budget no greater than $1.");
