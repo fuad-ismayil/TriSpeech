@@ -7,6 +7,21 @@ plugins {
 
 fun buildConfigString(value: String): String = "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
+val validateLiveAds by tasks.registering {
+    doLast {
+        if (providers.gradleProperty("STARTIO_LIVE_ADS").orNull == "true") {
+            check(providers.gradleProperty("STARTIO_APP_ID").orNull?.matches(Regex("[0-9]+")) == true) {
+                "Live ads require your numeric STARTIO_APP_ID."
+            }
+            val backendUrl = providers.gradleProperty("TRISPEECH_BACKEND_URL").orNull.orEmpty()
+            check(backendUrl.startsWith("https://") && !backendUrl.contains(".invalid")) {
+                "Live ads require a configured HTTPS TRISPEECH_BACKEND_URL."
+            }
+        }
+    }
+}
+tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(validateLiveAds) }
+
 android {
     namespace = "com.trispeech.app"
     compileSdk = 36
@@ -15,8 +30,9 @@ android {
         applicationId = "com.trispeech.app"
         minSdk = 29
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.1.1"
+        versionCode = 6
+        versionName = "1.2.0"
+        buildConfigField("String", "STARTIO_APP_ID", buildConfigString(providers.gradleProperty("STARTIO_APP_ID").orNull ?: ""))
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         externalNativeBuild {
@@ -45,10 +61,16 @@ android {
 
     buildTypes {
         debug {
+            // Isolated package for device QA and store captures; never replaces user data.
+            if (providers.gradleProperty("TRISPEECH_SCREENSHOT_BUILD").orNull == "true") {
+                applicationIdSuffix = ".storepreview"
+            }
+            buildConfigField("boolean", "STARTIO_TEST_ADS", "true")
             isMinifyEnabled = false
             buildConfigField("String", "BACKEND_BASE_URL", buildConfigString(providers.gradleProperty("TRISPEECH_BACKEND_URL").orNull ?: "http://10.0.2.2:8080"))
         }
         release {
+            buildConfigField("boolean", "STARTIO_TEST_ADS", (providers.gradleProperty("STARTIO_LIVE_ADS").orNull != "true").toString())
             isMinifyEnabled = true
             buildConfigField("String", "BACKEND_BASE_URL", buildConfigString(providers.gradleProperty("TRISPEECH_BACKEND_URL").orNull ?: "https://replace-before-release.invalid"))
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -60,6 +82,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
+    sourceSets.getByName("androidTest").assets.srcDir("$projectDir/schemas")
 }
 
 ksp {
@@ -67,6 +90,7 @@ ksp {
 }
 
 dependencies {
+    implementation("com.startapp:inapp-sdk:5.3.1")
     implementation(platform("androidx.compose:compose-bom:2024.11.00"))
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.activity:activity-compose:1.9.3")

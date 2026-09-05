@@ -16,6 +16,8 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.trispeech.app.TriSpeechApplication
+import com.trispeech.app.R
+import com.trispeech.app.ads.OnlineRewards
 import com.trispeech.app.audio.AudioRecorderEngine
 import com.trispeech.app.audio.RecordingService
 import com.trispeech.app.data.AudioMetadataEntity
@@ -44,6 +46,7 @@ import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
 
 data class StudioState(
     val recording: Boolean = false,
@@ -60,7 +63,10 @@ data class StudioState(
     val error: String? = null,
     val latestTranscriptId: Long? = null,
     val showOnlineDisclosure: Boolean = false,
-    val showSupportPrompt: Boolean = false
+    val showSupportPrompt: Boolean = false,
+    val showOnlineRewards: Boolean = false,
+    val pendingOnlineSeconds: Int = 0,
+    val hasPendingOnline: Boolean = false
 )
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -71,6 +77,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val backend = app.backend
     private val workManager = WorkManager.getInstance(application)
     private val promptPrefs = application.getSharedPreferences("support_prompt", Application.MODE_PRIVATE)
+    val onlineRewards = OnlineRewards(application, backend, viewModelScope)
+    private data class PendingOnline(val file: File, val title: String, val snapshot: StudioState)
+    private var pendingOnline: PendingOnline? = null
+    private val enqueueMutex = Mutex()
     private var recordingJob: Job? = null
     private var nativeJob: Deferred<Result<TranscriptionResult>>? = null
     private var timerJob: Job? = null
@@ -85,6 +95,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val transcripts = app.database.transcriptDao().observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     init {
+        val pendingPath = promptPrefs.getString("pending_online_path", null)
+        if (pendingPath != null && File(pendingPath).isFile) {
+            pendingOnline = PendingOnline(File(pendingPath), promptPrefs.getString("pending_online_title", "Recording")!!,
+                StudioState(engine = EngineKind.ONLINE_WHISPER, language = promptPrefs.getString("pending_online_language", "auto")!!))
+            _state.update { it.copy(engine = EngineKind.ONLINE_WHISPER, pendingOnlineSeconds = promptPrefs.getInt("pending_online_seconds", 0), hasPendingOnline = true, showOnlineRewards = true) }
+            onlineRewards.refresh()
+        }
         viewModelScope.launch { recorder.amplitudes.collectLatest { _amplitudes.value = it } }
         viewModelScope.launch {
             workManager.getWorkInfosByTagLiveData(TranscriptionWorker.TAG).asFlow().collectLatest { work ->
@@ -104,6 +121,28 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
     fun refreshInstalledModels() { _installedModels.value = installedModelSet() }
     fun clearError() { _state.value = _state.value.copy(error = null) }
+
+    fun openOnlineRewards() {
+        if (_state.value.recording || _state.value.processing) return
+        _state.update { it.copy(showOnlineRewards = true) }
+        onlineRewards.refresh()
+    }
+
+    fun closeOnlineRewards() { if (!onlineRewards.state.value.busy) _state.update { it.copy(showOnlineRewards = false) } }
+
+    fun discardPendingOnline() {
+        if (_state.value.processing || onlineRewards.state.value.busy || enqueueMutex.isLocked) return
+        pendingOnline?.file?.delete()
+        pendingOnline = null
+        promptPrefs.edit().remove("pending_online_path").remove("pending_online_title").remove("pending_online_language").remove("pending_online_seconds").remove("pending_online_operation").apply()
+        _state.update { it.copy(pendingOnlineSeconds = 0, hasPendingOnline = false, showOnlineRewards = false) }
+    }
+
+    fun resumePendingOnline(onComplete: (Long) -> Unit) {
+        val pending = pendingOnline ?: return
+        if (_state.value.processing || onlineRewards.state.value.busy) return
+        viewModelScope.launch { enqueueTranscription(pending.file, pending.title, pending.snapshot, onComplete) }
+    }
 
     fun acceptOnlineDisclosure() {
         promptPrefs.edit().putBoolean(ONLINE_DISCLOSURE, true).apply()
@@ -223,7 +262,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun startRecording() {
-        if (_state.value.recording || _state.value.processing) return
+        if (_state.value.recording || _state.value.processing || onlineRewards.state.value.busy) return
+        if (pendingOnline != null && _state.value.engine == EngineKind.ONLINE_WHISPER) { openOnlineRewards(); return }
+        if (_state.value.showOnlineDisclosure) return
         recorder.resetWaveform()
         _amplitudes.value = List(56) { 0f }
         _state.value = _state.value.copy(recording = true, paused = false, elapsedSeconds = 0, partialText = "", sourceName = "Recording.wav", error = null)
@@ -277,13 +318,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun importAudio(uri: Uri, onProcessing: () -> Unit, onComplete: (Long) -> Unit) {
-        if (_state.value.processing) return
+        if (_state.value.processing || _state.value.recording || onlineRewards.state.value.busy) return
+        if (pendingOnline != null && _state.value.engine == EngineKind.ONLINE_WHISPER) { openOnlineRewards(); return }
+        if (_state.value.showOnlineDisclosure) return
         if (_state.value.engine == EngineKind.NATIVE_STT) {
             _state.value = _state.value.copy(error = "Android Native STT listens live. Choose Online Whisper or a downloaded offline model for audio files.")
             return
         }
+        val importSnapshot = _state.value
+        _state.update { it.copy(processing = true) }
         viewModelScope.launch {
             runCatching {
+                withContext(Dispatchers.IO) {
                 val resolver = getApplication<Application>().contentResolver
                 val name = resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
                     if (cursor.moveToFirst()) cursor.getString(0) else null
@@ -295,21 +341,56 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     file.outputStream().use(input::copyTo)
                 }
                 file to name.substringBeforeLast('.')
+                }
             }.onSuccess { (file, title) ->
-                onProcessing(); val snapshot = _state.value.copy(processing = true, processingProgress = 0, sourceName = title); _state.value = snapshot
+                onProcessing(); val snapshot = importSnapshot.copy(processing = true, processingProgress = 0, sourceName = title); _state.value = snapshot
                 enqueueTranscription(file, title, snapshot, onComplete)
-            }.onFailure { _state.value = _state.value.copy(error = it.message) }
+            }.onFailure { _state.value = _state.value.copy(error = it.message, processing = false) }
         }
     }
 
     private suspend fun enqueueTranscription(file: File, title: String, snapshot: StudioState, onComplete: (Long) -> Unit) {
-        val operationId = java.util.UUID.randomUUID()
+        if (!enqueueMutex.tryLock()) return
+        try {
+        _state.update { it.copy(processing = true) }
+        if (snapshot.engine == EngineKind.ONLINE_WHISPER) {
+            // Preserve the input before network access or requesting credit.
+            val saved = File(getApplication<Application>().filesDir, "online-awaiting/audio.${file.extension.ifBlank { "wav" }}")
+            withContext(Dispatchers.IO) {
+                saved.parentFile?.mkdirs()
+                if (file.absolutePath != saved.absolutePath) { file.copyTo(saved, overwrite = true); file.delete() }
+            }
+            val seconds = withContext(Dispatchers.IO) { ((audioDurationMs(saved) + 999) / 1000).toInt() }
+            if (pendingOnline == null) promptPrefs.edit().putString("pending_online_operation", java.util.UUID.randomUUID().toString()).commit()
+            pendingOnline = PendingOnline(saved, title, snapshot)
+            promptPrefs.edit().putString("pending_online_path", saved.absolutePath).putString("pending_online_title", title)
+                .putString("pending_online_language", snapshot.language).putInt("pending_online_seconds", seconds).commit()
+            _state.update { it.copy(pendingOnlineSeconds = seconds, hasPendingOnline = true) }
+            if (seconds !in 1..600 || saved.length() > 25L * 1024 * 1024) {
+                _state.update { it.copy(error = getApplication<Application>().getString(R.string.online_audio_limit), showOnlineRewards = true, processing = false) }
+                return
+            }
+            val access = try { backend.onlineAccess() } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                _state.update { it.copy(error = error.message, showOnlineRewards = true, processing = false) }; return
+            }
+            if (!access.enabled || (access.mode != "development-preview" && access.availableSeconds < seconds)) {
+                _state.update { it.copy(showOnlineRewards = true, processing = false) }
+                onlineRewards.refresh()
+                return
+            }
+            _state.update { it.copy(showOnlineRewards = false, processing = true) }
+        }
+        val operationId = if (snapshot.engine == EngineKind.ONLINE_WHISPER) {
+            promptPrefs.getString("pending_online_operation", null)?.let(java.util.UUID::fromString) ?: java.util.UUID.randomUUID()
+        } else java.util.UUID.randomUUID()
         val extension = file.extension.ifBlank { "audio" }
         val pending = File(getApplication<Application>().filesDir, "pending/$operationId.$extension")
         withContext(Dispatchers.IO) {
             pending.parentFile?.mkdirs()
-            file.copyTo(pending, overwrite = true)
-            if (file.absolutePath != pending.absolutePath) file.delete()
+            val source = if (snapshot.engine == EngineKind.ONLINE_WHISPER) pendingOnline!!.file else file
+            source.copyTo(pending, overwrite = true)
+            if (snapshot.engine != EngineKind.ONLINE_WHISPER && source.absolutePath != pending.absolutePath) source.delete()
         }
         currentFile = null
         recordingJob = null
@@ -322,7 +403,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
         val request = builder.build()
         activeTranscriptionWorkId = request.id
-        workManager.enqueueUniqueWork("transcription-$operationId", ExistingWorkPolicy.KEEP, request)
+        val enqueued = workManager.enqueueUniqueWork("transcription-$operationId", ExistingWorkPolicy.KEEP, request)
+        withContext(Dispatchers.IO) { enqueued.result.get() }
+        if (snapshot.engine == EngineKind.ONLINE_WHISPER) {
+            val savedSource = pendingOnline?.file
+            pendingOnline = null
+            promptPrefs.edit().remove("pending_online_path").remove("pending_online_title").remove("pending_online_language").remove("pending_online_seconds").remove("pending_online_operation").commit()
+            savedSource?.delete()
+            _state.update { it.copy(pendingOnlineSeconds = 0, hasPendingOnline = false) }
+        }
 
         var terminal: WorkInfo? = null
         workManager.getWorkInfoByIdFlow(request.id).filterNotNull().takeWhile { info ->
@@ -352,6 +441,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             WorkInfo.State.CANCELLED -> _state.update { it.copy(processing = false, processingProgress = 0) }
             else -> _state.update { it.copy(error = terminal?.outputData?.getString(TranscriptionWorker.OUTPUT_ERROR) ?: "Transcription failed.", processing = false, processingProgress = 0) }
         }
+        } catch (error: Exception) {
+            if (error is kotlinx.coroutines.CancellationException) throw error
+            _state.update { it.copy(processing = false, error = error.message) }
+        } finally { enqueueMutex.unlock() }
     }
 
     fun cancelTranscription() {

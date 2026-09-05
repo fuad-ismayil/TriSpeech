@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ad_unavailable">No ad is available right now. Try again later.</string>
+    <string name="ad_not_configured">Rewarded ads are not configured yet.</string>
+    <string name="ad_mode_mismatch">The app and server ad test modes do not match.</string>
+    <string name="ad_offer_changed">The reward changed. Refresh before watching.</string>
+    <string name="applying_reward">Adding online transcription credit…</string>
+    <string name="ad_incomplete">The video was not completed. No credit was added.</string>
+    <string name="online_reward_access">GPT-4o Mini · Online access</string>
+    <string name="online_reward_body">Watch a rewarded video to unlock GPT-4o Mini transcription. Native STT and Offline Whisper need no ads.</string>
+    <string name="reward_expiry">Online credit expires 24 hours after the latest award.</string>
+    <string name="online_preview_access">This server provides development preview access without ads.</string>
+    <string name="pending_audio_credit">Your audio is saved. It needs %1$d seconds of online credit.</string>
+    <string name="test_ads_notice">Test ads do not generate revenue.</string>
+    <string name="ad_privacy_body">Start.io processes device and advertising data to serve ads. Choose whether to allow personalized ads. Non-personalized ads still process data needed for delivery and fraud prevention. You can change this choice here. Start.io also provides its own privacy disclosure.</string>
+    <string name="ad_personalized">Allow personalized ads</string>
+    <string name="ad_nonpersonalized">Use non-personalized ads</string>
+    <string name="online_audio_limit">Online audio must have a readable duration, be no longer than 10 minutes, and fit within 25 MiB.</string>
+    <string name="discard_pending_audio">Delete the saved audio waiting for online credit? This cannot be undone.</string>
+</resources>

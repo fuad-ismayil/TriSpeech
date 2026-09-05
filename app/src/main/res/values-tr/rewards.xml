@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ad_unavailable">Şu anda reklam yok. Daha sonra tekrar deneyin.</string>
+    <string name="ad_not_configured">Ödüllü reklamlar henüz yapılandırılmadı.</string>
+    <string name="ad_mode_mismatch">Uygulama ve sunucunun reklam test modları eşleşmiyor.</string>
+    <string name="ad_offer_changed">Ödül değişti. İzlemeden önce yenileyin.</string>
+    <string name="applying_reward">Çevrimiçi transkripsiyon kredisi ekleniyor…</string>
+    <string name="ad_incomplete">Video tamamlanmadı. Kredi eklenmedi.</string>
+    <string name="online_reward_access">GPT-4o Mini · Çevrimiçi erişim</string>
+    <string name="online_reward_body">GPT-4o Mini transkripsiyonunu açmak için ödüllü video izleyin. Native STT ve Offline Whisper reklam gerektirmez.</string>
+    <string name="reward_expiry">Çevrimiçi kredi son ödülden 24 saat sonra sona erer.</string>
+    <string name="online_preview_access">Bu sunucu reklamsız geliştirme önizlemesi erişimi sağlar.</string>
+    <string name="pending_audio_credit">Sesiniz kaydedildi. %1$d saniyelik çevrimiçi kredi gerekiyor.</string>
+    <string name="test_ads_notice">Test reklamları gelir oluşturmaz.</string>
+    <string name="ad_privacy_body">Start.io reklam sunmak için cihaz ve reklam verilerini işler. Kişiselleştirilmiş reklamlara izin verip vermeyeceğinizi seçin. Kişiselleştirilmemiş reklamlar da sunum ve dolandırıcılığı önlemek için veri işler. Seçiminizi buradan değiştirebilirsiniz. Start.io ayrıca kendi gizlilik açıklamasını sunar.</string>
+    <string name="ad_personalized">Kişiselleştirilmiş reklamlara izin ver</string>
+    <string name="ad_nonpersonalized">Kişiselleştirilmemiş reklamları kullan</string>
+    <string name="online_audio_limit">Çevrimiçi sesin süresi okunabilir olmalı, 10 dakikayı ve 25 MiB sınırını aşmamalıdır.</string>
+    <string name="discard_pending_audio">Çevrimiçi kredi bekleyen kayıtlı ses silinsin mi? Bu işlem geri alınamaz.</string>
+</resources>

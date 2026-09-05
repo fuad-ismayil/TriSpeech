@@ -6,6 +6,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Rule
 import org.junit.Test
+import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
@@ -26,9 +28,9 @@ class DatabaseMigrationTest {
         }
         helper.runMigrationsAndValidate(TEST_DATABASE, 2, true, TriSpeechDatabase.MIGRATION_1_2).use { database ->
             database.query("SELECT title, operationId FROM transcripts WHERE id = 1").use { cursor ->
-                assert(cursor.moveToFirst())
-                assert(cursor.getString(0) == "Saved")
-                assert(cursor.isNull(1))
+                assertTrue(cursor.moveToFirst())
+                assertEquals("Saved", cursor.getString(0))
+                assertTrue(cursor.isNull(1))
             }
         }
     }

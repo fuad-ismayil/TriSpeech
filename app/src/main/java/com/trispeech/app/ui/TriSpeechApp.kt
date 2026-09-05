@@ -156,6 +156,7 @@ private enum class LegalDocument { PRIVACY, TERMS }
 fun TriSpeechApp(darkTheme: Boolean, vm: AppViewModel = viewModel(), onToggleTheme: () -> Unit) {
     val context = LocalContext.current
     val state by vm.state.collectAsState()
+    val rewardState by vm.onlineRewards.state.collectAsState()
     val history by vm.transcripts.collectAsState()
     val installedModels by vm.installedModels.collectAsState()
     var screen by remember { mutableStateOf(Screen.STUDIO) }
@@ -175,6 +176,12 @@ fun TriSpeechApp(darkTheme: Boolean, vm: AppViewModel = viewModel(), onToggleThe
         uri?.let { vm.importAudio(it, { screen = Screen.PROCESSING }) { id -> viewedId = id; screen = Screen.VIEWER } }
     }
     val openSupport = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://kofe.al/@fuadismayil"))) }
+
+    if (state.showOnlineRewards) {
+        OnlineRewardDialog(state, rewardState, vm.onlineRewards, context.activity(), vm::closeOnlineRewards,
+            { vm.resumePendingOnline { id -> viewedId = id; screen = Screen.VIEWER } }, vm::discardPendingOnline)
+    }
+    LaunchedEffect(state.showOnlineRewards) { if (state.showOnlineRewards) screen = Screen.STUDIO }
 
     if (showDevelopmentNotice) {
         DevelopmentNoticeDialog(
@@ -264,6 +271,7 @@ fun TriSpeechApp(darkTheme: Boolean, vm: AppViewModel = viewModel(), onToggleThe
                         setLanguage = vm::setLanguage, setMethod = vm::setMethod,
                         installedModels = installedModels,
                         openModels = { screen = Screen.MODELS },
+                        openOnlineRewards = vm::openOnlineRewards,
                         openDevelopmentNotice = {
                             dontShowDevelopmentNotice = false
                             showDevelopmentNotice = true
@@ -306,7 +314,12 @@ private fun AppDrawer(
     ModalDrawerSheet(Modifier.fillMaxWidth(.84f)) {
         Column(Modifier.fillMaxHeight().statusBarsPadding().padding(24.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Icon(painterResource(R.drawable.ic_brand_mark), contentDescription = null, modifier = Modifier.size(38.dp))
+                Icon(
+                    painterResource(R.drawable.ic_brand_mark),
+                    contentDescription = null,
+                    modifier = Modifier.size(42.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge)
@@ -414,14 +427,15 @@ private fun StudioScreen(
     onRecord: () -> Unit, onPause: () -> Unit, onDiscard: () -> Unit, onStop: () -> Unit,
     setLanguage: (String) -> Unit, setMethod: (EngineKind, ModelTier?, OnlineModel?) -> Unit,
     installedModels: Set<ModelTier>, openModels: () -> Unit,
-    openDevelopmentNotice: () -> Unit
+    openDevelopmentNotice: () -> Unit,
+    openOnlineRewards: () -> Unit
 ) {
     Column(Modifier.fillMaxSize().padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Row(Modifier.fillMaxWidth().height(76.dp), verticalAlignment = Alignment.CenterVertically) {
             CircleIconButton(Icons.Outlined.Menu, stringResource(R.string.more), openDrawer)
             Spacer(Modifier.weight(1f)); SegmentedHeader(onFiles); Spacer(Modifier.weight(1f)); CircleIconButton(Icons.Outlined.Build, stringResource(R.string.development_status), openDevelopmentNotice)
         }
-        Spacer(Modifier.height(72.dp))
+        Spacer(Modifier.height(if (state.engine == EngineKind.ONLINE_WHISPER) 40.dp else 72.dp))
         Text(formatDuration(state.elapsedSeconds), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Light, fontSize = 48.sp)
         Text(if (state.recording) stringResource(R.string.recording) else stringResource(R.string.ready), color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(50.dp))
@@ -435,8 +449,13 @@ private fun StudioScreen(
             }
             CircleControl(if (state.paused) Icons.Filled.PlayArrow else Icons.Filled.Pause, stringResource(R.string.recording), 64) { if (state.recording) onPause() }
         }
-        Spacer(Modifier.height(54.dp))
+        Spacer(Modifier.height(if (state.engine == EngineKind.ONLINE_WHISPER) 20.dp else 54.dp))
         SelectorCard(state, installedModels, setLanguage, setMethod, openModels)
+        if (state.engine == EngineKind.ONLINE_WHISPER) {
+            TextButton(onClick = openOnlineRewards, enabled = !state.recording && !state.processing) {
+                Text(stringResource(R.string.online_reward_access))
+            }
+        }
         Spacer(Modifier.height(10.dp))
     }
 }
@@ -543,7 +562,7 @@ private fun StudioScreen(
     }
 }
 
-@Composable private fun InfoCard(name: String) { Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) { Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) { Icon(painterResource(R.drawable.ic_brand_mark), contentDescription = null, modifier = Modifier.size(32.dp)); Spacer(Modifier.width(16.dp)); Column { Text(name, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis); Text("Audio", color = MaterialTheme.colorScheme.onSurfaceVariant) } } } }
+@Composable private fun InfoCard(name: String) { Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) { Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) { Icon(painterResource(R.drawable.ic_brand_mark), contentDescription = null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onSurface); Spacer(Modifier.width(16.dp)); Column { Text(name, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis); Text("Audio", color = MaterialTheme.colorScheme.onSurfaceVariant) } } } }
 @Composable private fun MetadataCard(state: StudioState) { Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) { Column(Modifier.padding(20.dp)) { MetadataRow(Icons.Outlined.MicNone, stringResource(R.string.engine), when(state.engine) { EngineKind.ONLINE_WHISPER -> stringResource(R.string.online_whisper); EngineKind.NATIVE_STT -> stringResource(R.string.native_stt); EngineKind.OFFLINE_WHISPER -> stringResource(R.string.offline_local) }); HorizontalDivider(Modifier.padding(vertical = 14.dp)); MetadataRow(Icons.Outlined.Memory, stringResource(R.string.model), methodLabel(state)); HorizontalDivider(Modifier.padding(vertical = 14.dp)); MetadataRow(Icons.Outlined.Language, stringResource(R.string.language), languageLabel(state.language)) } } }
 @Composable private fun MetadataRow(icon: ImageVector, key: String, value: String) { Row(verticalAlignment = Alignment.CenterVertically) { Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp)); Spacer(Modifier.width(16.dp)); Column { Text(key, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp); Text(value, fontWeight = FontWeight.Medium) } } }
 

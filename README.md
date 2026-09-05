@@ -1,5 +1,7 @@
 # TriSpeech
 
+Start.io rewarded GPT-4o Mini integration: see [setup and verification](docs/startio-setup.md). Live activation requires publisher configuration; debug ads are test-only. The TokenMix backend remains in use.
+
 TriSpeech is a free-first monochrome Android transcription studio with ad-supported GPT-4o Mini, on-device `whisper.cpp`, and Android native speech recognition.
 
 ## Build

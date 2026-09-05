@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ad_unavailable">Hazırda reklam yoxdur. Daha sonra yenidən cəhd edin.</string>
+    <string name="ad_not_configured">Mükafatlı reklamlar hələ qurulmayıb.</string>
+    <string name="ad_mode_mismatch">Tətbiq və serverin reklam test rejimləri uyğun deyil.</string>
+    <string name="ad_offer_changed">Mükafat dəyişdi. Baxmazdan əvvəl yeniləyin.</string>
+    <string name="applying_reward">Onlayn transkripsiya krediti əlavə edilir…</string>
+    <string name="ad_incomplete">Video tamamlanmadı. Kredit əlavə edilmədi.</string>
+    <string name="online_reward_access">GPT-4o Mini · Onlayn giriş</string>
+    <string name="online_reward_body">GPT-4o Mini transkripsiyasını açmaq üçün mükafatlı videoya baxın. Native STT və Offline Whisper reklam tələb etmir.</string>
+    <string name="reward_expiry">Onlayn kredit son mükafatdan 24 saat sonra bitir.</string>
+    <string name="online_preview_access">Bu server reklamsız sınaq girişi təqdim edir.</string>
+    <string name="pending_audio_credit">Audionuz saxlanılıb. %1$d saniyə onlayn kredit lazımdır.</string>
+    <string name="test_ads_notice">Test reklamları gəlir gətirmir.</string>
+    <string name="ad_privacy_body">Start.io reklam göstərmək üçün cihaz və reklam məlumatlarını emal edir. Fərdiləşdirilmiş reklamlara icazə verib-vermədiyinizi seçin. Fərdiləşdirilməmiş reklamlar da göstərilmə və saxtakarlığın qarşısının alınması üçün məlumat emal edir. Seçimi burada dəyişə bilərsiniz. Start.io öz məxfilik açıqlamasını da təqdim edir.</string>
+    <string name="ad_personalized">Fərdiləşdirilmiş reklamlara icazə ver</string>
+    <string name="ad_nonpersonalized">Fərdiləşdirilməmiş reklamlardan istifadə et</string>
+    <string name="online_audio_limit">Onlayn audionun müddəti oxuna bilməli, 10 dəqiqədən və 25 MiB-dan çox olmamalıdır.</string>
+    <string name="discard_pending_audio">Onlayn kredit gözləyən saxlanmış audio silinsin? Bunu geri qaytarmaq olmaz.</string>
+</resources>

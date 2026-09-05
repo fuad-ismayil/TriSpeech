@@ -15,6 +15,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.trispeech.app.R
 import com.trispeech.app.TriSpeechApplication
+import com.trispeech.app.network.BackendException
 import com.trispeech.app.data.AudioMetadataEntity
 import com.trispeech.app.data.TranscriptEntity
 import java.io.File
@@ -77,7 +78,8 @@ class TranscriptionWorker(context: Context, parameters: WorkerParameters) : Coro
             result.fold(
                 onSuccess = { transcript -> save(operationId, title, engineKind, modelTier, file, transcript) },
                 onFailure = { error ->
-                    if (engineKind == EngineKind.ONLINE_WHISPER && error is IOException && runAttemptCount < 2) Result.retry()
+                    if (engineKind == EngineKind.ONLINE_WHISPER && error is IOException &&
+                        (error !is BackendException || error.status >= 500) && runAttemptCount < 2) Result.retry()
                     else failure(error.message ?: "Transcription failed.")
                 }
             )

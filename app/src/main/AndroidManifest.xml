@@ -4,6 +4,7 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
@@ -20,9 +21,19 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="false"
         android:theme="@style/Theme.TriSpeech">
+        <!-- Initialize only after the user opens online access and chooses ad privacy. -->
+        <provider android:name="com.startapp.sdk.adsbase.StartAppInitProvider"
+            android:authorities="${applicationId}.startappinitprovider" tools:node="remove" />
+        <meta-data android:name="com.startapp.sdk.SPLASH_ENABLED" android:value="false" />
+        <meta-data android:name="com.startapp.sdk.RETURN_ADS_ENABLED" android:value="false" />
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:screenOrientation="portrait">
+            <!-- Preserve the portrait-only UI on API 36 large-screen compatibility mode. -->
+            <property
+                android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY"
+                android:value="true" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

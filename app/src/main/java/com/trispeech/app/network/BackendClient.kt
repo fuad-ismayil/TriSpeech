@@ -38,6 +38,28 @@ class BackendClient(
     private val registrationMutex = Mutex()
     @Volatile private var registered = false
 
+    suspend fun onlineAccess(): OnlineAccess = withContext(Dispatchers.IO) {
+        ensureRegistered()
+        val config = executeJson(signedRequest("GET", "/v1/config", null, UUID.randomUUID().toString()))
+        val credits = executeJson(signedRequest("GET", "/v1/credits", null, UUID.randomUUID().toString()))
+        OnlineAccess(config.optBoolean("onlineEnabled"), config.optString("accessMode"),
+            config.optString("adProvider"), config.optInt("rewardSeconds", 60),
+            credits.optInt("availableSeconds"), config.optBoolean("testRewards"))
+    }
+
+    suspend fun createAdSession(): AdSession = withContext(Dispatchers.IO) {
+        ensureRegistered()
+        val result = executeJson(signedRequest("POST", "/v1/ad-sessions", "{}", UUID.randomUUID().toString()))
+        AdSession(result.getString("sessionId"), result.getInt("rewardSeconds"))
+    }
+
+    suspend fun completeStartIoReward(sessionId: String): Unit = withContext(Dispatchers.IO) {
+        ensureRegistered()
+        val body = JSONObject().put("sessionId", sessionId).put("testAd", BuildConfig.STARTIO_TEST_ADS).toString()
+        executeJson(signedRequest("POST", "/v1/startio/completions", body, sessionId))
+        Unit
+    }
+
     suspend fun transcribe(request: TranscriptionRequest, onProgress: (Int) -> Unit): TranscriptionResult = withContext(Dispatchers.IO) {
         ensureRegistered()
         require(request.audioFile.length() <= MAX_UPLOAD_BYTES) { "Online audio is limited to 25 MiB." }
@@ -128,7 +150,10 @@ class BackendClient(
 
     private fun executeJson(request: Request): JSONObject = client.newCall(request).execute().use { response ->
         val body = response.body?.string().orEmpty()
-        if (!response.isSuccessful) throw IOException(JSONObject(body.ifBlank { "{}" }).optString("message", "Service error (${response.code})."))
+        if (!response.isSuccessful) {
+            val message = runCatching { JSONObject(body).optString("message") }.getOrNull().orEmpty()
+            throw BackendException(response.code, message.ifBlank { "Service error (${response.code})." })
+        }
         JSONObject(body.ifBlank { "{}" })
     }
 
@@ -155,6 +180,10 @@ class BackendClient(
         private val EMPTY_HASH = InstallationIdentity.sha256(ByteArray(0))
     }
 }
+
+data class OnlineAccess(val enabled: Boolean, val mode: String, val provider: String, val rewardSeconds: Int, val availableSeconds: Int, val testRewards: Boolean)
+data class AdSession(val id: String, val rewardSeconds: Int)
+class BackendException(val status: Int, message: String) : IOException(message)
 
 private fun JSONObject.toTranscriptionResult(fallbackLanguage: String): TranscriptionResult {
     val result = optJSONObject("result") ?: this
