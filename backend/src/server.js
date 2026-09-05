@@ -5,7 +5,7 @@ import express from "express";
 import ffprobeStatic from "ffprobe-static";
 import { CloudTasksClient } from "@google-cloud/tasks";
 import { authMiddleware, httpError, verifyAppCheck, verifyRegistrationRequest } from "./auth.js";
-import { loadTokenMixKeys } from "./config.js";
+import { loadTokenMixKeys, rewardConfig } from "./config.js";
 import { marketReward } from "./economics.js";
 import { AmbiguousProviderError, ProviderPool } from "./provider.js";
 import { createStore, StoreError } from "./store.js";
@@ -24,6 +24,7 @@ if (typeof ffprobeExecutable !== "string" || !ffprobeExecutable) {
 }
 const onlineEnabled = () => process.env.ONLINE_SERVICE_ENABLED !== "false";
 const developmentAccessMode = process.env.DEVELOPMENT_ACCESS_MODE === "true";
+const rewards = rewardConfig();
 const provider = new ProviderPool({
   endpoint: process.env.TOKENMIX_ENDPOINT ?? "https://api.tokenmix.ai/v1/audio/transcriptions",
   keys: loadTokenMixKeys()
@@ -41,8 +42,9 @@ app.get("/healthz", (_req, res) => res.json({ ok: true }));
 
 app.get("/callbacks/admob/ssv", async (req, res, next) => {
   try {
+    if (rewards.provider !== "admob") throw httpError("AdMob rewards are disabled.", 404);
     const verified = await verifyAdMobSsv(req.originalUrl);
-    await store.grantAdReward(verified.sessionId, verified.transactionId);
+    await store.grantAdReward(verified.sessionId, verified.transactionId, { provider: "admob" });
     res.status(200).send("ok");
   } catch (error) { next(error); }
 });
@@ -81,6 +83,9 @@ app.post("/v1/installations/register", async (req, res, next) => {
 app.get("/v1/config", authenticate, (_req, res) => res.json({
   onlineEnabled: onlineEnabled(), model: "gpt-4o-mini-transcribe", maxUploadBytes: 25 * 1024 * 1024,
   maxDurationSeconds: 600, accessMode: developmentAccessMode ? "development-preview" : "rewarded-credit",
+  adProvider: rewards.provider, rewardSeconds: rewards.provider === "startio" ? rewards.seconds : null,
+  testRewards: rewards.testRewards,
+  rewardEvidence: rewards.provider === "startio" ? "client-reported" : "provider-verified",
   supportUrl: "https://kofe.al/@fuadismayil"
 }));
 
@@ -91,10 +96,25 @@ app.get("/v1/credits", authenticate, async (req, res, next) => {
 app.post("/v1/ad-sessions", authenticate, async (req, res, next) => {
   try {
     if (!onlineEnabled()) throw httpError("Online transcription is temporarily unavailable.", 503);
-    const reward = marketReward(marketFor(req), economics, targetMargin);
+    if (developmentAccessMode) throw httpError("Preview access does not require ads.", 409);
+    if (rewards.provider === "startio" && !rewards.clientRewards) throw httpError("Start.io reward activation is pending.", 503);
+    const reward = rewards.provider === "startio" ? rewards.seconds : marketReward(marketFor(req), economics, targetMargin);
     if (reward < 30) throw httpError("Online access is not currently sustainable in this market.", 503);
-    const session = await store.createAdSession(req.installationId, req.get("Idempotency-Key"), reward);
+    const session = await store.createAdSession(req.installationId, req.get("Idempotency-Key"), reward, { provider: rewards.provider, testAd: rewards.testRewards });
     res.status(201).json({ sessionId: session.id, rewardSeconds: session.rewardSeconds, expiresAtEpochMs: session.expiresAt });
+  } catch (error) { next(error); }
+});
+
+// This endpoint accepts client evidence for the explicitly enabled experiment.
+// Request authentication and replay protection do NOT prove ad viewing.
+app.post("/v1/startio/completions", authenticate, async (req, res, next) => {
+  try {
+    if (rewards.provider !== "startio" || !rewards.clientRewards || developmentAccessMode) throw httpError("Start.io rewards are disabled.", 503);
+    const { sessionId, testAd } = req.body ?? {};
+    if (!/^[a-f0-9]{64}$/.test(sessionId ?? "") || typeof testAd !== "boolean") throw httpError("Invalid completion.");
+    if (testAd !== rewards.testRewards) throw httpError("Test and live reward environments must match.", 403);
+    await store.grantAdReward(sessionId, `startio-${sessionId}`, { installationId: req.installationId, provider: "startio", testAd });
+    res.json(await store.credits(req.installationId));
   } catch (error) { next(error); }
 });
 
@@ -115,7 +135,6 @@ app.post("/v1/uploads/:id/complete", authenticate, async (req, res, next) => {
 app.post("/v1/transcription-jobs", authenticate, async (req, res, next) => {
   try {
     if (!onlineEnabled()) throw httpError("Online transcription is temporarily unavailable.", 503);
-    if (!developmentAccessMode) throw httpError("Online preview access is not enabled on this server.", 503);
     const { uploadId, language, model } = req.body ?? {};
     if (model !== "gpt-4o-mini-transcribe") throw httpError("Unsupported online model.");
     const upload = await store.upload(uploadId);
@@ -188,7 +207,9 @@ async function dispatchJob(jobId) {
     localFile = await storage.localFile(job.uploadId);
     const durationSeconds = await probeDuration(localFile);
     if (!(durationSeconds > 0) || durationSeconds > 600) throw httpError("Online audio must be no longer than 10 minutes.", 400);
-    await store.reserveJob(jobId, Math.ceil(durationSeconds), !developmentAccessMode); reserved = !developmentAccessMode;
+    const claim = await store.reserveJob(jobId, Math.ceil(durationSeconds), !developmentAccessMode);
+    if (!claim.dispatchClaimed) { deferred = true; return; }
+    reserved = !developmentAccessMode;
     await store.reserveProviderCost(jobId, providerMinuteCost * durationSeconds / 60, providerDailyBudget);
     const result = await provider.transcribe({ filePath: localFile, fileName: upload.fileName, mediaType: upload.mediaType, language: job.language, logicalJobId: jobId });
     const { keyAlias: _keyAlias, ...publicResult } = result;

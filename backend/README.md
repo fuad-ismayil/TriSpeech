@@ -1,6 +1,8 @@
 # TriSpeech V1 backend
 
-This service is the security boundary for online transcription. Android never receives TokenMix credentials. The current preview build deliberately leaves advertising disabled and permits tightly rate-limited development access only when `DEVELOPMENT_ACCESS_MODE=true`.
+The Start.io milestone adds explicitly enabled client-reported experimental rewards and activates the existing credit-gated TokenMix path. See [Start.io setup](../docs/startio-setup.md) for test/live configuration and limitations. The older AdMob roadmap below remains deferred; the private Render preview is unchanged until its environment is explicitly reconfigured.
+
+This service is the security boundary for online transcription. Android never receives TokenMix credentials. The private preview permits development access when `DEVELOPMENT_ACCESS_MODE=true`; the Start.io experiment instead requires credits with this flag false.
 
 ## Local development
 
@@ -20,7 +22,7 @@ Never place a TokenMix credential in Gradle properties, BuildConfig, Android res
 
 ## Current preview safety
 
-The Android preview contains no ad SDK and calls only this backend. The ad and SSV routes remain dormant scaffolding for the preserved V1 roadmap; they are not used while `DEVELOPMENT_ACCESS_MODE=true`.
+The Android build now includes an explicitly initialized Start.io SDK. The private preview does not require ads; its development bypass is incompatible with enabled Start.io rewards. The AdMob SSV route is disabled when Start.io is selected.
 
 - Keep the preview URL private among testers.
 - Set strict spending/quota limits in the TokenMix account itself. The in-memory development budget resets when a free host restarts and is not a billing guarantee.
