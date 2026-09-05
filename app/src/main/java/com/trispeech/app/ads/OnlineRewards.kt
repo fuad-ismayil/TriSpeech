@@ -70,20 +70,27 @@ class OnlineRewards(context: Context, private val backend: BackendClient, privat
         }
     }
 
-    fun watch(activity: Activity) {
-        if (mutableState.value.busy || !hasPrivacyChoice) return
+    fun watch(activity: Activity, onFinished: (Boolean) -> Unit = {}) {
+        if (mutableState.value.busy) return
+        if (!hasPrivacyChoice) {
+            onFinished(false)
+            return
+        }
         if (BuildConfig.STARTIO_APP_ID.isBlank()) {
             mutableState.update { it.copy(message = context.getString(R.string.ad_not_configured)) }
+            onFinished(false)
             return
         }
         mutableState.update { it.copy(busy = true, message = context.getString(R.string.loading_ad)) }
         val offeredSeconds = mutableState.value.access?.rewardSeconds
         scope.launch {
+            var rewarded = false
             try {
                 // Retry an already completed reward before requesting another video.
                 if (prefs.contains("pending_completion")) {
                     reconcile()
                     mutableState.update { it.copy(access = backend.onlineAccess(), message = null) }
+                    rewarded = true
                     return@launch
                 }
                 val access = backend.onlineAccess()
@@ -110,12 +117,16 @@ class OnlineRewards(context: Context, private val backend: BackendClient, privat
                 if (completed) {
                     mutableState.update { it.copy(message = context.getString(R.string.applying_reward)) }
                     reconcile()
+                    rewarded = true
                 }
                 mutableState.update { it.copy(access = backend.onlineAccess(), message = if (completed) null else context.getString(R.string.ad_incomplete)) }
             } catch (error: Exception) {
                 if (error is CancellationException && error !is kotlinx.coroutines.TimeoutCancellationException) throw error
                 mutableState.update { it.copy(message = if (error is kotlinx.coroutines.TimeoutCancellationException) context.getString(R.string.ad_unavailable) else error.message ?: context.getString(R.string.ad_unavailable)) }
-            } finally { mutableState.update { it.copy(busy = false, showing = false) } }
+            } finally {
+                mutableState.update { it.copy(busy = false, showing = false) }
+                onFinished(rewarded)
+            }
         }
     }
 

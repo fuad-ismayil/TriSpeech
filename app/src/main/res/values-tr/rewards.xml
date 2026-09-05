@@ -6,8 +6,10 @@
     <string name="ad_offer_changed">Ödül değişti. İzlemeden önce yenileyin.</string>
     <string name="applying_reward">Çevrimiçi transkripsiyon kredisi ekleniyor…</string>
     <string name="ad_incomplete">Video tamamlanmadı. Kredi eklenmedi.</string>
-    <string name="online_reward_access">GPT-4o Mini · Çevrimiçi erişim</string>
-    <string name="online_reward_body">GPT-4o Mini transkripsiyonunu açmak için ödüllü video izleyin. Native STT ve Offline Whisper reklam gerektirmez.</string>
+    <string name="online_reward_access">Güçlü Model · Çevrimiçi erişim</string>
+    <string name="online_reward_body">Güçlü Model transkripsiyon süresi eklemek için ödüllü video izleyin.</string>
+    <string name="online_balance">Çevrimiçi bakiye</string>
+    <string name="watch_ad_increase_balance">Bakiyeyi artırmak için reklam izle</string>
     <string name="reward_expiry">Çevrimiçi kredi son ödülden 24 saat sonra sona erer.</string>
     <string name="online_preview_access">Bu sunucu reklamsız geliştirme önizlemesi erişimi sağlar.</string>
     <string name="pending_audio_credit">Sesiniz kaydedildi. %1$d saniyelik çevrimiçi kredi gerekiyor.</string>

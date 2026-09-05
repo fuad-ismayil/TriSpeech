@@ -169,19 +169,36 @@ fun TriSpeechApp(darkTheme: Boolean, vm: AppViewModel = viewModel(), onToggleThe
     var showDevelopmentNotice by remember { mutableStateOf(!previewPreferences.getBoolean("hide_notice", false)) }
     var dontShowDevelopmentNotice by remember { mutableStateOf(false) }
     var legalDocument by remember { mutableStateOf<LegalDocument?>(null) }
+    var privacyRevision by remember { mutableIntStateOf(0) }
     val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) vm.startRecording() else scope.launch { snackbar.showSnackbar(context.getString(R.string.permission_required)) }
+        if (granted) vm.startRecording { id -> viewedId = id; screen = Screen.VIEWER }
+        else scope.launch { snackbar.showSnackbar(context.getString(R.string.permission_required)) }
     }
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { vm.importAudio(it, { screen = Screen.PROCESSING }) { id -> viewedId = id; screen = Screen.VIEWER } }
     }
     val openSupport = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://kofe.al/@fuadismayil"))) }
+    val activity = context.activity()
 
-    if (state.showOnlineRewards) {
-        OnlineRewardDialog(state, rewardState, vm.onlineRewards, context.activity(), vm::closeOnlineRewards,
-            { vm.resumePendingOnline { id -> viewedId = id; screen = Screen.VIEWER } }, vm::discardPendingOnline)
+    LaunchedEffect(Unit) { vm.onlineRewards.refresh() }
+    if (state.showBalanceDialog) {
+        BalanceDialog(rewardState, vm.onlineRewards, activity, vm::closeBalance)
     }
-    LaunchedEffect(state.showOnlineRewards) { if (state.showOnlineRewards) screen = Screen.STUDIO }
+    if (state.automaticRewardRequested && !vm.onlineRewards.hasPrivacyChoice) {
+        PrivacyChoiceDialog(choose = { personalized ->
+            vm.onlineRewards.choosePrivacy(personalized)
+            privacyRevision++
+        })
+    }
+    LaunchedEffect(state.automaticRewardRequested, rewardState.busy, privacyRevision) {
+        if (state.automaticRewardRequested && !rewardState.busy && vm.onlineRewards.hasPrivacyChoice) {
+            vm.beginAutomaticReward()
+            if (activity == null) vm.finishAutomaticReward(false) { }
+            else vm.onlineRewards.watch(activity) { rewarded ->
+                vm.finishAutomaticReward(rewarded) { id -> viewedId = id; screen = Screen.VIEWER }
+            }
+        }
+    }
 
     if (showDevelopmentNotice) {
         DevelopmentNoticeDialog(
@@ -246,6 +263,7 @@ fun TriSpeechApp(darkTheme: Boolean, vm: AppViewModel = viewModel(), onToggleThe
             onPrivacy = { legalDocument = LegalDocument.PRIVACY; scope.launch { drawer.close() } },
             onTerms = { legalDocument = LegalDocument.TERMS; scope.launch { drawer.close() } },
             onLicenses = { screen = Screen.LICENSES; scope.launch { drawer.close() } },
+            onDevelopmentNotice = { showDevelopmentNotice = true; scope.launch { drawer.close() } },
             darkTheme = darkTheme,
             onToggleTheme = onToggleTheme
         )
@@ -271,11 +289,9 @@ fun TriSpeechApp(darkTheme: Boolean, vm: AppViewModel = viewModel(), onToggleThe
                         setLanguage = vm::setLanguage, setMethod = vm::setMethod,
                         installedModels = installedModels,
                         openModels = { screen = Screen.MODELS },
-                        openOnlineRewards = vm::openOnlineRewards,
-                        openDevelopmentNotice = {
-                            dontShowDevelopmentNotice = false
-                            showDevelopmentNotice = true
-                        }
+                        balanceSeconds = rewardState.access?.availableSeconds,
+                        balanceBusy = rewardState.busy,
+                        openBalance = vm::openBalance
                     )
                     Screen.PROCESSING -> ProcessingScreen(state) { vm.cancelTranscription(); screen = Screen.STUDIO }
                     Screen.HISTORY -> HistoryScreen(history) { viewedId = it; screen = Screen.VIEWER }
@@ -304,6 +320,7 @@ private fun AppDrawer(
     onPrivacy: () -> Unit,
     onTerms: () -> Unit,
     onLicenses: () -> Unit,
+    onDevelopmentNotice: () -> Unit,
     darkTheme: Boolean,
     onToggleTheme: () -> Unit
 ) {
@@ -343,6 +360,11 @@ private fun AppDrawer(
                     shape = RoundedCornerShape(12.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) { Box(contentAlignment = Alignment.Center) { Icon(if (darkTheme) Icons.Outlined.DarkMode else Icons.Outlined.LightMode, contentDescription = stringResource(R.string.toggle_theme)) } }
+                Surface(
+                    Modifier.size(48.dp).clickable(onClick = onDevelopmentNotice),
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                ) { Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Build, contentDescription = stringResource(R.string.development_status)) } }
             }
             HorizontalDivider(Modifier.padding(vertical = 18.dp))
             DrawerRow(Icons.Outlined.ViewInAr, stringResource(R.string.models), onModels)
@@ -427,13 +449,13 @@ private fun StudioScreen(
     onRecord: () -> Unit, onPause: () -> Unit, onDiscard: () -> Unit, onStop: () -> Unit,
     setLanguage: (String) -> Unit, setMethod: (EngineKind, ModelTier?, OnlineModel?) -> Unit,
     installedModels: Set<ModelTier>, openModels: () -> Unit,
-    openDevelopmentNotice: () -> Unit,
-    openOnlineRewards: () -> Unit
+    balanceSeconds: Int?, balanceBusy: Boolean, openBalance: () -> Unit
 ) {
     Column(Modifier.fillMaxSize().padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Row(Modifier.fillMaxWidth().height(76.dp), verticalAlignment = Alignment.CenterVertically) {
             CircleIconButton(Icons.Outlined.Menu, stringResource(R.string.more), openDrawer)
-            Spacer(Modifier.weight(1f)); SegmentedHeader(onFiles); Spacer(Modifier.weight(1f)); CircleIconButton(Icons.Outlined.Build, stringResource(R.string.development_status), openDevelopmentNotice)
+            Spacer(Modifier.weight(1f)); SegmentedHeader(onFiles); Spacer(Modifier.weight(1f))
+            BalanceButton(balanceSeconds, balanceBusy, openBalance)
         }
         Spacer(Modifier.height(if (state.engine == EngineKind.ONLINE_WHISPER) 40.dp else 72.dp))
         Text(formatDuration(state.elapsedSeconds), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Light, fontSize = 48.sp)
@@ -451,12 +473,21 @@ private fun StudioScreen(
         }
         Spacer(Modifier.height(if (state.engine == EngineKind.ONLINE_WHISPER) 20.dp else 54.dp))
         SelectorCard(state, installedModels, setLanguage, setMethod, openModels)
-        if (state.engine == EngineKind.ONLINE_WHISPER) {
-            TextButton(onClick = openOnlineRewards, enabled = !state.recording && !state.processing) {
-                Text(stringResource(R.string.online_reward_access))
-            }
-        }
         Spacer(Modifier.height(10.dp))
+    }
+}
+
+@Composable
+private fun BalanceButton(seconds: Int?, busy: Boolean, open: () -> Unit) {
+    Surface(
+        modifier = Modifier.height(44.dp).clickable(enabled = !busy, onClick = open),
+        shape = RoundedCornerShape(14.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Box(Modifier.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
+            Text(if (seconds == null) "…" else formatDuration(seconds.toLong()), fontWeight = FontWeight.SemiBold)
+        }
     }
 }
 

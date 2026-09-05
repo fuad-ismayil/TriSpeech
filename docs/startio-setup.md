@@ -1,14 +1,14 @@
 # Start.io rewarded online transcription
 
-TriSpeech 1.2.0 (version code 6) includes Start.io Android SDK 5.3.1 and a rewarded-access dialog for GPT-4o Mini. Native STT and Offline Whisper remain available without advertising.
+TriSpeech 1.2.0 (version code 6) includes Start.io Android SDK 5.3.1. The app presents the cloud engine as **Powerful Model**; Native STT and Offline Whisper remain available without advertising.
 
 ## Current behavior
 
-Select GPT-4o Mini and open **Online access**. The dialog reads the backend allowance and available credit, offers ad privacy choices, and loads an optional rewarded video. The default experimental allowance is 60 seconds, configurable on the backend from 30 to 120 seconds. Credit expires 24 hours after the most recent award. No claim of profitability is implied.
+The top-right balance control reads the current online allowance. Its window offers **Watch Ad to Increase Balance** and ad privacy choices. The default experimental allowance is 60 seconds per completed video, configurable on the backend from 30 to 120 seconds. Credit expires 24 hours after the most recent award. No claim of profitability is implied.
 
-When a recording or import needs more credit, its audio is retained in private app storage. Watch enough ads and press Continue. Audio pending credit survives app restarts; discarding it requires confirmation. The existing upload/job/TokenMix path handles transcription. Server-measured duration remains authoritative. The session limit is six new sessions per installation per rolling hour, so large files may require credit accumulated over time; the file limit remains 10 minutes/25 MiB.
+When a completed recording or import has enough credit, transcription begins immediately. If it needs more, the audio is retained in private app storage and the app automatically shows rewarded videos until the balance covers the duration. No intermediate access dialog or Continue action is required. Pending audio survives app restarts. The existing upload/job/TokenMix path handles transcription, and server-measured duration remains authoritative. The session limit is six new sessions per installation per rolling hour; the file limit remains 10 minutes/25 MiB.
 
-Splash, return, and automatic interstitial ads are disabled. The SDK initializes only when the user has made an ad privacy choice and explicitly requests a rewarded ad.
+Splash, return, and automatic interstitial ads are disabled. The SDK initializes only after an ad privacy choice and when a reward is needed for selected online transcription or explicitly requested from the balance window.
 
 ## Reward evidence
 
@@ -70,7 +70,7 @@ The supplied seller file has now been copied unchanged into `store/uptodown/app-
 
 ## Verification and rollback
 
-Verified on 2026-09-05: 8 Android unit tests and 15 backend tests passed; Android lint reported 0 errors (69 warnings, 1 hint); debug and minified unsigned release APKs built. After the phone was connected, 2 instrumentation tests passed on Xiaomi M2004J19C / Android 10, including database migration with history preservation. Store screenshots were captured from a separate `com.trispeech.app.storepreview` installation with sample content. Core screens and the online-access dialog opened; its emulator backend address is unreachable from this phone. Real ad display and actual TokenMix transcription remain pending. No real provider calls were used in the automated integration test.
+Verified on 2026-09-05: 8 Android unit tests and 15 backend tests passed; Android lint reported 0 errors. Two instrumentation tests passed on Xiaomi M2004J19C / Android 10, including database migration with history preservation. A configured isolated `com.trispeech.app.storepreview` build connected to the Render backend, displayed Start.io test rewarded inventory, credited completion, and completed a short TokenMix transcription. A controlled 119-second import with insufficient balance loaded two distinct rewarded videos and entered transcription only after both rewards were credited. Test ads generated no revenue.
 
 Initial implementation artifacts (SHA-256, historical; debug output was subsequently rebuilt for store captures):
 

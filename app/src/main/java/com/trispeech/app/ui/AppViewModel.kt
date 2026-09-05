@@ -64,7 +64,8 @@ data class StudioState(
     val latestTranscriptId: Long? = null,
     val showOnlineDisclosure: Boolean = false,
     val showSupportPrompt: Boolean = false,
-    val showOnlineRewards: Boolean = false,
+    val showBalanceDialog: Boolean = false,
+    val automaticRewardRequested: Boolean = false,
     val pendingOnlineSeconds: Int = 0,
     val hasPendingOnline: Boolean = false
 )
@@ -99,7 +100,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (pendingPath != null && File(pendingPath).isFile) {
             pendingOnline = PendingOnline(File(pendingPath), promptPrefs.getString("pending_online_title", "Recording")!!,
                 StudioState(engine = EngineKind.ONLINE_WHISPER, language = promptPrefs.getString("pending_online_language", "auto")!!))
-            _state.update { it.copy(engine = EngineKind.ONLINE_WHISPER, pendingOnlineSeconds = promptPrefs.getInt("pending_online_seconds", 0), hasPendingOnline = true, showOnlineRewards = true) }
+            _state.update { it.copy(engine = EngineKind.ONLINE_WHISPER, pendingOnlineSeconds = promptPrefs.getInt("pending_online_seconds", 0), hasPendingOnline = true) }
             onlineRewards.refresh()
         }
         viewModelScope.launch { recorder.amplitudes.collectLatest { _amplitudes.value = it } }
@@ -122,25 +123,32 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun refreshInstalledModels() { _installedModels.value = installedModelSet() }
     fun clearError() { _state.value = _state.value.copy(error = null) }
 
-    fun openOnlineRewards() {
+    fun openBalance() {
         if (_state.value.recording || _state.value.processing) return
-        _state.update { it.copy(showOnlineRewards = true) }
+        _state.update { it.copy(showBalanceDialog = true) }
         onlineRewards.refresh()
     }
 
-    fun closeOnlineRewards() { if (!onlineRewards.state.value.busy) _state.update { it.copy(showOnlineRewards = false) } }
+    fun closeBalance() { if (!onlineRewards.state.value.busy) _state.update { it.copy(showBalanceDialog = false) } }
+
+    fun beginAutomaticReward() { _state.update { it.copy(automaticRewardRequested = false) } }
+
+    fun finishAutomaticReward(rewarded: Boolean, onComplete: (Long) -> Unit) {
+        if (rewarded) resumePendingOnline(onComplete)
+        else _state.update { it.copy(processing = false, error = onlineRewards.state.value.message) }
+    }
 
     fun discardPendingOnline() {
         if (_state.value.processing || onlineRewards.state.value.busy || enqueueMutex.isLocked) return
         pendingOnline?.file?.delete()
         pendingOnline = null
         promptPrefs.edit().remove("pending_online_path").remove("pending_online_title").remove("pending_online_language").remove("pending_online_seconds").remove("pending_online_operation").apply()
-        _state.update { it.copy(pendingOnlineSeconds = 0, hasPendingOnline = false, showOnlineRewards = false) }
+        _state.update { it.copy(pendingOnlineSeconds = 0, hasPendingOnline = false, showBalanceDialog = false, automaticRewardRequested = false) }
     }
 
     fun resumePendingOnline(onComplete: (Long) -> Unit) {
         val pending = pendingOnline ?: return
-        if (_state.value.processing || onlineRewards.state.value.busy) return
+        if (onlineRewards.state.value.busy) return
         viewModelScope.launch { enqueueTranscription(pending.file, pending.title, pending.snapshot, onComplete) }
     }
 
@@ -261,9 +269,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun startRecording() {
+    fun startRecording(onPendingComplete: (Long) -> Unit = {}) {
         if (_state.value.recording || _state.value.processing || onlineRewards.state.value.busy) return
-        if (pendingOnline != null && _state.value.engine == EngineKind.ONLINE_WHISPER) { openOnlineRewards(); return }
+        if (pendingOnline != null && _state.value.engine == EngineKind.ONLINE_WHISPER) {
+            _state.update { it.copy(processing = true) }
+            resumePendingOnline(onPendingComplete)
+            return
+        }
         if (_state.value.showOnlineDisclosure) return
         recorder.resetWaveform()
         _amplitudes.value = List(56) { 0f }
@@ -319,7 +331,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun importAudio(uri: Uri, onProcessing: () -> Unit, onComplete: (Long) -> Unit) {
         if (_state.value.processing || _state.value.recording || onlineRewards.state.value.busy) return
-        if (pendingOnline != null && _state.value.engine == EngineKind.ONLINE_WHISPER) { openOnlineRewards(); return }
+        if (pendingOnline != null && _state.value.engine == EngineKind.ONLINE_WHISPER) {
+            _state.update { it.copy(processing = true) }
+            onProcessing()
+            resumePendingOnline(onComplete)
+            return
+        }
         if (_state.value.showOnlineDisclosure) return
         if (_state.value.engine == EngineKind.NATIVE_STT) {
             _state.value = _state.value.copy(error = "Android Native STT listens live. Choose Online Whisper or a downloaded offline model for audio files.")
@@ -367,19 +384,24 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 .putString("pending_online_language", snapshot.language).putInt("pending_online_seconds", seconds).commit()
             _state.update { it.copy(pendingOnlineSeconds = seconds, hasPendingOnline = true) }
             if (seconds !in 1..600 || saved.length() > 25L * 1024 * 1024) {
-                _state.update { it.copy(error = getApplication<Application>().getString(R.string.online_audio_limit), showOnlineRewards = true, processing = false) }
+                saved.delete()
+                pendingOnline = null
+                promptPrefs.edit().remove("pending_online_path").remove("pending_online_title").remove("pending_online_language")
+                    .remove("pending_online_seconds").remove("pending_online_operation").apply()
+                _state.update { it.copy(error = getApplication<Application>().getString(R.string.online_audio_limit), processing = false,
+                    pendingOnlineSeconds = 0, hasPendingOnline = false, automaticRewardRequested = false) }
                 return
             }
             val access = try { backend.onlineAccess() } catch (error: Exception) {
                 if (error is kotlinx.coroutines.CancellationException) throw error
-                _state.update { it.copy(error = error.message, showOnlineRewards = true, processing = false) }; return
+                _state.update { it.copy(error = error.message, processing = false) }; return
             }
             if (!access.enabled || (access.mode != "development-preview" && access.availableSeconds < seconds)) {
-                _state.update { it.copy(showOnlineRewards = true, processing = false) }
+                _state.update { it.copy(automaticRewardRequested = true, processing = true) }
                 onlineRewards.refresh()
                 return
             }
-            _state.update { it.copy(showOnlineRewards = false, processing = true) }
+            _state.update { it.copy(automaticRewardRequested = false, processing = true) }
         }
         val operationId = if (snapshot.engine == EngineKind.ONLINE_WHISPER) {
             promptPrefs.getString("pending_online_operation", null)?.let(java.util.UUID::fromString) ?: java.util.UUID.randomUUID()
@@ -410,7 +432,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             pendingOnline = null
             promptPrefs.edit().remove("pending_online_path").remove("pending_online_title").remove("pending_online_language").remove("pending_online_seconds").remove("pending_online_operation").commit()
             savedSource?.delete()
-            _state.update { it.copy(pendingOnlineSeconds = 0, hasPendingOnline = false) }
+            _state.update { it.copy(pendingOnlineSeconds = 0, hasPendingOnline = false, automaticRewardRequested = false) }
         }
 
         var terminal: WorkInfo? = null

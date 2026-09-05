@@ -6,8 +6,10 @@
     <string name="ad_offer_changed">Mükafat dəyişdi. Baxmazdan əvvəl yeniləyin.</string>
     <string name="applying_reward">Onlayn transkripsiya krediti əlavə edilir…</string>
     <string name="ad_incomplete">Video tamamlanmadı. Kredit əlavə edilmədi.</string>
-    <string name="online_reward_access">GPT-4o Mini · Onlayn giriş</string>
-    <string name="online_reward_body">GPT-4o Mini transkripsiyasını açmaq üçün mükafatlı videoya baxın. Native STT və Offline Whisper reklam tələb etmir.</string>
+    <string name="online_reward_access">Güclü Model · Onlayn giriş</string>
+    <string name="online_reward_body">Güclü Model transkripsiya vaxtı əlavə etmək üçün mükafatlı videoya baxın.</string>
+    <string name="online_balance">Onlayn balans</string>
+    <string name="watch_ad_increase_balance">Balansı artırmaq üçün reklama bax</string>
     <string name="reward_expiry">Onlayn kredit son mükafatdan 24 saat sonra bitir.</string>
     <string name="online_preview_access">Bu server reklamsız sınaq girişi təqdim edir.</string>
     <string name="pending_audio_credit">Audionuz saxlanılıb. %1$d saniyə onlayn kredit lazımdır.</string>

@@ -6,8 +6,10 @@
     <string name="ad_offer_changed">The reward changed. Refresh before watching.</string>
     <string name="applying_reward">Adding online transcription credit…</string>
     <string name="ad_incomplete">The video was not completed. No credit was added.</string>
-    <string name="online_reward_access">GPT-4o Mini · Online access</string>
-    <string name="online_reward_body">Watch a rewarded video to unlock GPT-4o Mini transcription. Native STT and Offline Whisper need no ads.</string>
+    <string name="online_reward_access">Powerful Model · Online access</string>
+    <string name="online_reward_body">Watch a rewarded video to add Powerful Model transcription time.</string>
+    <string name="online_balance">Online balance</string>
+    <string name="watch_ad_increase_balance">Watch Ad to Increase Balance</string>
     <string name="reward_expiry">Online credit expires 24 hours after the latest award.</string>
     <string name="online_preview_access">This server provides development preview access without ads.</string>
     <string name="pending_audio_credit">Your audio is saved. It needs %1$d seconds of online credit.</string>

@@ -20,8 +20,8 @@
     <string name="maximum_quality">Maximum Quality</string>
     <string name="maximum_speed">Maximum Speed</string>
     <string name="native_stt">Native STT</string>
-    <string name="online_whisper">Online Whisper</string>
-    <string name="online_mini">GPT-4o Mini · Online</string>
+    <string name="online_whisper">Online transcription</string>
+    <string name="online_mini">Powerful Model</string>
     <string name="transcribing">Transcribing…</string>
     <string name="cancel">Cancel</string>
     <string name="engine">Engine</string>
@@ -59,7 +59,7 @@
     <string name="privacy_policy">Privacy Policy</string>
     <string name="privacy_choices">Privacy choices</string>
     <string name="terms_of_use">Terms of Use</string>
-    <string name="privacy_body">Development preview. TriSpeech does not require an account and does not provide cloud history backup. Recordings, transcripts, settings, and downloaded models are stored locally on this device. Removing the app or clearing its data removes that local information.\n\nOffline Whisper processes audio on the device. Android Native STT follows your device’s speech-service settings. When you choose GPT-4o Mini Online, the selected audio is uploaded to the TriSpeech backend and sent to TokenMix for cloud transcription. Temporary backend audio is deleted after a successful result or within 24 hours after a terminal failure.\n\nStart.io rewarded ads can unlock GPT-4o Mini online transcription. Start.io processes device and advertising data to deliver ads and prevent fraud. You can change ad personalization under Online access → Privacy choices. TriSpeech keeps anonymous installation, reward, credit, and job records on its backend. There are no payments or subscriptions. Do not upload confidential audio or material you do not have permission to process. You can delete individual recordings and downloaded models inside the app.</string>
+    <string name="privacy_body">Development preview. TriSpeech does not require an account and does not provide cloud history backup. Recordings, transcripts, settings, and downloaded models are stored locally on this device. Removing the app or clearing its data removes that local information.\n\nOffline Whisper processes audio on the device. Android Native STT follows your device’s speech-service settings. When you choose the Powerful Model, the selected audio is uploaded to the TriSpeech backend and sent to TokenMix for cloud transcription. Temporary backend audio is deleted after a successful result or within 24 hours after a terminal failure.\n\nStart.io rewarded ads can add Powerful Model transcription time. Start.io processes device and advertising data to deliver ads and prevent fraud. You can change ad personalization from the online balance window. TriSpeech keeps anonymous installation, reward, credit, and job records on its backend. There are no payments or subscriptions. Do not upload confidential audio or material you do not have permission to process. You can delete individual recordings and downloaded models inside the app.</string>
     <string name="terms_body">TriSpeech is currently a development preview and is provided without payment. Features may change, fail, or be temporarily unavailable. Native STT and Offline Whisper run independently from the online preview service.\n\nYou are responsible for recordings and files you process and must have permission to use them. Do not use the service for unlawful, abusive, or harmful activity. Online use may be limited by file size, duration, request rate, provider availability, and development cost controls.\n\nKeep copies of important data. Local history can be lost if the app is removed, its data is cleared, or the device fails. Continued use means you accept these preview terms.</string>
     <string name="licenses_body">TriSpeech includes open-source software and downloadable model files. Their copyright notices and license texts must be packaged with the production build. Model licenses and source-attribution files remain applicable even though downloads and offline processing are free.</string>
     <string name="licenses">Open Source Licenses</string>
@@ -69,7 +69,7 @@
     <string name="continue_label">Continue</string>
     <string name="permission_required">Microphone permission is required to record.</string>
     <string name="online_disclosure_title">Before using online transcription</string>
-    <string name="online_disclosure_body">Your audio is uploaded to the TriSpeech development backend and processed by TokenMix using GPT-4o Mini. The TokenMix key stays on the server and is not included in the app. Temporary uploads are deleted after success or within 24 hours after a terminal failure. Offline Whisper processes audio locally.</string>
+    <string name="online_disclosure_body">Your audio is uploaded to the TriSpeech development backend and processed by TokenMix using the Powerful Model. The TokenMix key stays on the server and is not included in the app. Temporary uploads are deleted after success or within 24 hours after a terminal failure. Offline Whisper processes audio locally.</string>
     <string name="development_notice_title">Development preview</string>
     <string name="development_notice_body">TriSpeech is still under development and this is not the final release. Some online services may be unavailable or change while testing. If the app is useful to you, you can optionally support continued development.</string>
     <string name="development_status">Development status</string>

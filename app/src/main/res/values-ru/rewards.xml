@@ -6,8 +6,10 @@
     <string name="ad_offer_changed">Вознаграждение изменилось. Обновите данные перед просмотром.</string>
     <string name="applying_reward">Начисляем время онлайн-расшифровки…</string>
     <string name="ad_incomplete">Видео не досмотрено. Время не начислено.</string>
-    <string name="online_reward_access">GPT-4o Mini · Онлайн-доступ</string>
-    <string name="online_reward_body">Посмотрите видео с вознаграждением для доступа к GPT-4o Mini. Native STT и Offline Whisper доступны без рекламы.</string>
+    <string name="online_reward_access">Мощная модель · Онлайн-доступ</string>
+    <string name="online_reward_body">Посмотрите видео с вознаграждением, чтобы добавить время для Мощной модели.</string>
+    <string name="online_balance">Онлайн-баланс</string>
+    <string name="watch_ad_increase_balance">Посмотреть рекламу и пополнить баланс</string>
     <string name="reward_expiry">Время онлайн-доступа истекает через 24 часа после последнего начисления.</string>
     <string name="online_preview_access">Этот сервер предоставляет тестовый доступ без рекламы.</string>
     <string name="pending_audio_credit">Аудио сохранено. Требуется %1$d секунд онлайн-доступа.</string>
