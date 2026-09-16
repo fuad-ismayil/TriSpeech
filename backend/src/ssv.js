@@ -106,7 +106,9 @@ function validateExpectedReward(callback, expected) {
   if (!expected?.adUnitId || !expected?.rewardAmount || !expected?.rewardItem) {
     throw unavailable("AdMob SSV reward validation is not configured.");
   }
-  if (callback.adUnitId !== expected.adUnitId) throw forbidden("Unexpected AdMob ad unit.");
+  if (callback.adUnitId !== expected.adUnitId) {
+    throw forbidden(`Unexpected AdMob ad unit: ${callback.adUnitId}.`);
+  }
   if (callback.rewardAmount !== expected.rewardAmount || callback.rewardItem !== expected.rewardItem) {
     throw forbidden("Unexpected AdMob reward.");
   }
