@@ -43,7 +43,7 @@ app.get("/healthz", (_req, res) => res.json({ ok: true }));
 app.get("/callbacks/admob/ssv", async (req, res, next) => {
   try {
     if (rewards.provider !== "admob") throw httpError("AdMob rewards are disabled.", 404);
-    const verified = await verifyAdMobSsv(req.originalUrl);
+    const verified = await verifyAdMobSsv(req.originalUrl, rewards.ssv);
     await store.grantAdReward(verified.sessionId, verified.transactionId, { provider: "admob" });
     res.status(200).send("ok");
   } catch (error) { next(error); }

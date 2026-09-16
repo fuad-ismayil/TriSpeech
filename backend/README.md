@@ -20,6 +20,8 @@ The Android release build must be compiled with the HTTPS URL and production AdM
 
 Never place a TokenMix credential in Gradle properties, BuildConfig, Android resources, source code, or the APK.
 
+For production rewards, configure the backend with the same full `ADMOB_REWARDED_AD_UNIT_ID` used by Android. Set `ADMOB_SSV_REWARD_AMOUNT` and `ADMOB_SSV_REWARD_ITEM` to exactly match the reward configured for that unit in AdMob; the recommended values are `1` and `online_credit`. Configure the AdMob SSV callback URL as `https://your-service.example/callbacks/admob/ssv`. The signed reward fields are validation markers only: TriSpeech always grants the amount of transcription time stored in its server-created reward session.
+
 ## Current preview safety
 
 The Android build initializes Google Mobile Ads only after the user opens online access and makes an ad-privacy choice. The private preview does not require ads. For end-to-end testing with Google's sample rewarded ad, set `DEVELOPMENT_ACCESS_MODE=false`, `ADMOB_TEST_REWARDS=true`, and `ADMOB_CLIENT_REWARDS_ENABLED=true`; never use that bridge for production.
@@ -32,7 +34,7 @@ The Android build initializes Google Mobile Ads only after the user opens online
 ## Future V1 production configuration
 
 - Rotate every credential previously pasted into chat. Store only fresh keys as numbered `TOKENMIX_KEY_N` secrets.
-- Configure the production AdMob rewarded unit to send SSV callbacks to `/callbacks/admob/ssv`.
+- Configure the production AdMob rewarded unit to send SSV callbacks to `/callbacks/admob/ssv`, and verify it with AdMob's testing tool before release.
 - Set `REQUIRE_APP_CHECK=true`, Firestore TTL for `requestNonces`, a 24-hour Storage lifecycle backstop, and IAM-restricted Cloud Run service identities.
 - Configure Cloud Tasks with a low dispatch ceiling, Cloud Run max instances, provider concurrency, per-provider/cloud budgets, and 50/70/85/95/100 percent alerts/actions.
 - Put the internal operations routes behind IAM/IAP in addition to the internal task token.

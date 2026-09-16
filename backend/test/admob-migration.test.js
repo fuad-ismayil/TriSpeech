@@ -4,10 +4,19 @@ import { MemoryStore } from "../src/store.js";
 import { rewardConfig } from "../src/config.js";
 
 test("AdMob client completion is isolated to explicit test environments", () => {
-  assert.deepEqual(rewardConfig({}), { provider: "admob", clientRewards: false, testRewards: false });
+  assert.deepEqual(rewardConfig({}), {
+    provider: "admob", clientRewards: false, testRewards: false,
+    ssv: { adUnitId: "", rewardAmount: "", rewardItem: "" }
+  });
   assert.throws(() => rewardConfig({ ADMOB_CLIENT_REWARDS_ENABLED: "true" }), /only for test ads/);
   assert.throws(() => rewardConfig({ ADMOB_CLIENT_REWARDS_ENABLED: "true", ADMOB_TEST_REWARDS: "true", DEVELOPMENT_ACCESS_MODE: "true" }), /cannot be combined/);
   assert.equal(rewardConfig({ ADMOB_CLIENT_REWARDS_ENABLED: "true", ADMOB_TEST_REWARDS: "true" }).clientRewards, true);
+  assert.throws(() => rewardConfig({ NODE_ENV: "production", DEVELOPMENT_ACCESS_MODE: "false" }), /Production AdMob rewards require/);
+  assert.deepEqual(rewardConfig({
+    NODE_ENV: "production", DEVELOPMENT_ACCESS_MODE: "false",
+    ADMOB_REWARDED_AD_UNIT_ID: "ca-app-pub-1234567890123456/9876543210",
+    ADMOB_SSV_REWARD_AMOUNT: "1", ADMOB_SSV_REWARD_ITEM: "online_credit"
+  }).ssv, { adUnitId: "9876543210", rewardAmount: "1", rewardItem: "online_credit" });
 });
 
 test("AdMob awards bind to owner, provider, test mode and single-use session", async () => {
