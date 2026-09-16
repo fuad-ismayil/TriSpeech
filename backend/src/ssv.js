@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 
 const VERIFIER_KEYS_URL = "https://www.gstatic.com/admob/reward/verifier-keys.json";
+const ADMOB_CONSOLE_TEST_AD_UNIT_ID = "1234567890";
 const KEY_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const UNKNOWN_KEY_REFRESH_COOLDOWN_MS = 5 * 60 * 1000;
 const REQUIRED_SIGNED_PARAMETERS = [
@@ -47,14 +48,16 @@ export function createAdMobSsvVerifier({ loadKeys = fetchVerifierKeys, now = () 
       // Malformed signatures fail closed just like a cryptographic mismatch.
     }
     if (!valid) throw invalid("Invalid SSV signature.");
-    validateExpectedReward(callback, expected);
+    const consoleVerification = callback.adUnitId === ADMOB_CONSOLE_TEST_AD_UNIT_ID;
+    if (!consoleVerification) validateExpectedReward(callback, expected);
     return {
       sessionId: callback.customData,
       transactionId: callback.transactionId,
       adUnitId: callback.adUnitId,
       rewardAmount: callback.rewardAmount,
       rewardItem: callback.rewardItem,
-      timestamp: callback.timestamp
+      timestamp: callback.timestamp,
+      consoleVerification
     };
   };
 }

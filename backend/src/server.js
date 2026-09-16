@@ -44,6 +44,11 @@ app.get("/callbacks/admob/ssv", async (req, res, next) => {
   try {
     if (rewards.provider !== "admob") throw httpError("AdMob rewards are disabled.", 404);
     const verified = await verifyAdMobSsv(req.originalUrl, rewards.ssv);
+    if (verified.consoleVerification) {
+      console.log(JSON.stringify({ event: "admob_ssv_console_verified" }));
+      res.status(200).send("ok");
+      return;
+    }
     await store.grantAdReward(verified.sessionId, verified.transactionId, { provider: "admob" });
     res.status(200).send("ok");
   } catch (error) {

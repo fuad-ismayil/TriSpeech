@@ -29,8 +29,22 @@ test("valid AdMob SSV callback verifies every authoritative field", async () => 
   const verified = await verify(callback(keys.privateKey), EXPECTED);
   assert.deepEqual(verified, {
     sessionId: "a".repeat(64), transactionId: "b".repeat(32), adUnitId: EXPECTED.adUnitId,
-    rewardAmount: EXPECTED.rewardAmount, rewardItem: EXPECTED.rewardItem, timestamp: 1700000000000
+    rewardAmount: EXPECTED.rewardAmount, rewardItem: EXPECTED.rewardItem, timestamp: 1700000000000,
+    consoleVerification: false
   });
+});
+
+test("Google-signed AdMob console probes are accepted but marked as non-crediting", async () => {
+  const keys = keyPair();
+  const verify = createAdMobSsvVerifier({ loadKeys: async () => new Map([["123", keys.publicKey]]) });
+  const verified = await verify(callback(keys.privateKey, {
+    adUnitId: "1234567890",
+    rewardAmount: "999",
+    rewardItem: "console_test",
+    transactionId: "123456789"
+  }), EXPECTED);
+  assert.equal(verified.consoleVerification, true);
+  assert.equal(verified.adUnitId, "1234567890");
 });
 
 test("AdMob dashboard test transaction IDs are accepted", async () => {
