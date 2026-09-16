@@ -83,7 +83,7 @@ function parseCallback(originalUrl) {
   const rewardAmount = params.get("reward_amount");
   const timestamp = params.get("timestamp");
   if (!/^[a-f0-9]{64}$/.test(customData)) throw invalid("Invalid SSV custom_data.");
-  if (!/^[a-fA-F0-9]{16,128}$/.test(transactionId)) throw invalid("Invalid SSV transaction_id.");
+  if (!/^[a-fA-F0-9]{1,128}$/.test(transactionId)) throw invalid("Invalid SSV transaction_id.");
   if (!/^\d+$/.test(params.get("ad_unit"))) throw invalid("Invalid SSV ad_unit.");
   if (!/^\d+$/.test(rewardAmount) || BigInt(rewardAmount) <= 0n) throw invalid("Invalid SSV reward_amount.");
   if (!/^\d+$/.test(timestamp) || !Number.isSafeInteger(Number(timestamp))) throw invalid("Invalid SSV timestamp.");

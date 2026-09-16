@@ -33,6 +33,17 @@ test("valid AdMob SSV callback verifies every authoritative field", async () => 
   });
 });
 
+test("AdMob dashboard test transaction IDs are accepted", async () => {
+  const keys = keyPair();
+  const verify = createAdMobSsvVerifier({ loadKeys: async () => new Map([["123", keys.publicKey]]) });
+  const verified = await verify(callback(keys.privateKey, { transactionId: "123456789" }), EXPECTED);
+  assert.equal(verified.transactionId, "123456789");
+  await assert.rejects(verify(callback(keys.privateKey, { transactionId: "not-hex" }), EXPECTED), {
+    status: 400,
+    message: "Invalid SSV transaction_id."
+  });
+});
+
 test("SSV rejects invalid signatures, malformed payloads, and unexpected rewards", async () => {
   const trusted = keyPair();
   const attacker = keyPair();
