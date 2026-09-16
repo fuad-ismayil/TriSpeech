@@ -15,7 +15,8 @@
     <string name="pending_audio_credit">Аудио сохранено. Требуется %1$d секунд онлайн-доступа.</string>
     <string name="test_ads_notice">Тестовая реклама не приносит доход.</string>
     <string name="ad_privacy_body">Google Mobile Ads обрабатывает данные устройства и рекламы для её показа. Выберите, разрешать ли персонализированную рекламу. Неперсонализированная реклама также использует данные для показа и защиты от мошенничества. Выбор можно изменить здесь.</string>
-    <string name="reward_verification_pending">Награда ещё проверяется. Запись сохранена; немного позже обновите онлайн-баланс, чтобы продолжить.</string>
+    <string name="reward_verification_pending">Подтверждение награды задерживается. Обновите онлайн-баланс перед просмотром следующей рекламы.</string>
+    <string name="test_reward_unavailable">Сервис тестовых наград временно недоступен. Повторите попытку немного позже.</string>
     <string name="ad_personalized">Разрешить персонализацию</string>
     <string name="ad_nonpersonalized">Без персонализации</string>
     <string name="online_audio_limit">Длительность аудио должна определяться и не превышать 10 минут, а размер — 25 МиБ.</string>

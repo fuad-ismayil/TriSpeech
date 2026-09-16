@@ -54,11 +54,11 @@ class BackendClient(
         AdSession(result.getString("sessionId"), result.getInt("rewardSeconds"))
     }
 
-    suspend fun completeAdMobTestReward(sessionId: String): Unit = withContext(Dispatchers.IO) {
+    suspend fun completeAdMobTestReward(sessionId: String): CreditBalance = withContext(Dispatchers.IO) {
         ensureRegistered()
         val body = JSONObject().put("sessionId", sessionId).put("testAd", BuildConfig.ADMOB_TEST_ADS).toString()
-        executeJson(signedRequest("POST", "/v1/admob/test-completions", body, sessionId))
-        Unit
+        val result = executeJson(signedRequest("POST", "/v1/admob/test-completions", body, sessionId))
+        CreditBalance(result.getInt("availableSeconds"), result.optString("lastGrantSessionId").ifBlank { null })
     }
 
     suspend fun transcribe(request: TranscriptionRequest, onProgress: (Int) -> Unit): TranscriptionResult = withContext(Dispatchers.IO) {
@@ -192,6 +192,7 @@ data class OnlineAccess(
     val lastGrantSessionId: String?
 )
 data class AdSession(val id: String, val rewardSeconds: Int)
+data class CreditBalance(val availableSeconds: Int, val lastGrantSessionId: String?)
 class BackendException(val status: Int, message: String) : IOException(message)
 
 private fun JSONObject.toTranscriptionResult(fallbackLanguage: String): TranscriptionResult {

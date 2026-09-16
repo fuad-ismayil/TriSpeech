@@ -147,9 +147,20 @@ class OnlineRewards(context: Context, private val backend: BackendClient, privat
     private suspend fun awaitServerReward(sessionId: String): OnlineAccess {
         if (BuildConfig.ADMOB_TEST_ADS) {
             try {
-                backend.completeAdMobTestReward(sessionId)
+                val balance = backend.completeAdMobTestReward(sessionId)
+                check(balance.lastGrantSessionId == sessionId) {
+                    context.getString(R.string.reward_verification_pending)
+                }
+                prefs.edit().remove(PENDING_REWARD_SESSION).commit()
+                return (mutableState.value.access ?: backend.onlineAccess()).copy(
+                    availableSeconds = balance.availableSeconds,
+                    lastGrantSessionId = balance.lastGrantSessionId
+                )
             } catch (error: BackendException) {
-                if (error.status != 503) throw error
+                if (error.status == 503) {
+                    throw IllegalStateException(context.getString(R.string.test_reward_unavailable))
+                }
+                throw error
             }
         }
         repeat(40) {

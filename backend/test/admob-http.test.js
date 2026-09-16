@@ -41,8 +41,12 @@ test("signed reward -> credit -> existing transcription route, with replay and m
     const session = await (await request("POST", "/v1/ad-sessions", {})).json();
     assert.equal((await request("POST", "/v1/admob/test-completions", { sessionId: session.sessionId, testAd: false })).status, 403);
     const grant = () => request("POST", "/v1/admob/test-completions", { sessionId: session.sessionId, testAd: true }, session.sessionId);
-    assert.equal((await (await grant()).json()).availableSeconds, 30);
-    assert.equal((await (await grant()).json()).availableSeconds, 30);
+    const firstGrant = await (await grant()).json();
+    const replayedGrant = await (await grant()).json();
+    assert.equal(firstGrant.availableSeconds, 30);
+    assert.equal(replayedGrant.availableSeconds, 30);
+    assert.equal(firstGrant.lastGrantSessionId, session.sessionId);
+    assert.equal(replayedGrant.lastGrantSessionId, session.sessionId);
     assert.equal((await request("GET", "/callbacks/admob/ssv")).status, 400);
     // Reward mode reaches upload validation instead of the old unconditional preview-only 503.
     assert.equal((await request("POST", "/v1/transcription-jobs", { model: "gpt-4o-mini-transcribe", uploadId: "missing" })).status, 404);
