@@ -15,7 +15,7 @@ test("signed reward -> credit -> existing transcription route, with replay and m
   });
   await new Promise(resolve => mockProvider.listen(0, "127.0.0.1", resolve));
   Object.assign(process.env, { NODE_ENV: "test", USE_MEMORY_STORE: "true", DEVELOPMENT_ACCESS_MODE: "false",
-    AD_PROVIDER: "startio", STARTIO_CLIENT_REWARDS_ENABLED: "true", STARTIO_TEST_REWARDS: "true", REQUIRE_APP_CHECK: "false",
+    ADMOB_CLIENT_REWARDS_ENABLED: "true", ADMOB_TEST_REWARDS: "true", REQUIRE_APP_CHECK: "false",
     TOKENMIX_KEY_1: "test-only-fake-key", TOKENMIX_ENDPOINT: `http://127.0.0.1:${mockProvider.address().port}/v1/audio/transcriptions`,
     UPLOAD_BUCKET: "", CLOUD_TASKS_QUEUE: "", PROVIDER_DAILY_BUDGET_USD: "1" });
   const { app } = await import("../src/server.js");
@@ -36,13 +36,14 @@ test("signed reward -> credit -> existing transcription route, with replay and m
     assert.equal((await request("POST", "/v1/installations/register", { installationId, publicKey: publicKey.export({ format: "der", type: "spki" }).toString("base64url") })).status, 201);
     const config = await (await request("GET", "/v1/config")).json();
     assert.equal(config.accessMode, "rewarded-credit");
-    assert.equal(config.rewardSeconds, 60);
+    assert.equal(config.adProvider, "admob");
+    assert.equal(config.rewardSeconds, 30);
     const session = await (await request("POST", "/v1/ad-sessions", {})).json();
-    assert.equal((await request("POST", "/v1/startio/completions", { sessionId: session.sessionId, testAd: false })).status, 403);
-    const grant = () => request("POST", "/v1/startio/completions", { sessionId: session.sessionId, testAd: true }, session.sessionId);
-    assert.equal((await (await grant()).json()).availableSeconds, 60);
-    assert.equal((await (await grant()).json()).availableSeconds, 60);
-    assert.equal((await request("GET", "/callbacks/admob/ssv")).status, 404);
+    assert.equal((await request("POST", "/v1/admob/test-completions", { sessionId: session.sessionId, testAd: false })).status, 403);
+    const grant = () => request("POST", "/v1/admob/test-completions", { sessionId: session.sessionId, testAd: true }, session.sessionId);
+    assert.equal((await (await grant()).json()).availableSeconds, 30);
+    assert.equal((await (await grant()).json()).availableSeconds, 30);
+    assert.equal((await request("GET", "/callbacks/admob/ssv")).status, 400);
     // Reward mode reaches upload validation instead of the old unconditional preview-only 503.
     assert.equal((await request("POST", "/v1/transcription-jobs", { model: "gpt-4o-mini-transcribe", uploadId: "missing" })).status, 404);
     // One second of PCM WAV exercises ffprobe, credit reservation and provider dispatch.
@@ -67,7 +68,7 @@ test("signed reward -> credit -> existing transcription route, with replay and m
     assert.equal(status.status, "succeeded", JSON.stringify(status));
     assert.equal(status.result.text, "A test transcript.");
     assert.equal(providerRequests, 1);
-    assert.equal((await (await request("GET", "/v1/credits")).json()).availableSeconds, 59);
+    assert.equal((await (await request("GET", "/v1/credits")).json()).availableSeconds, 29);
   } finally {
     server.closeAllConnections(); await new Promise(resolve => server.close(resolve));
     mockProvider.closeAllConnections(); await new Promise(resolve => mockProvider.close(resolve));

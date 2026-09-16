@@ -14,7 +14,8 @@
     <string name="online_preview_access">This server provides development preview access without ads.</string>
     <string name="pending_audio_credit">Your audio is saved. It needs %1$d seconds of online credit.</string>
     <string name="test_ads_notice">Test ads do not generate revenue.</string>
-    <string name="ad_privacy_body">Start.io processes device and advertising data to serve ads. Choose whether to allow personalized ads. Non-personalized ads still process data needed for delivery and fraud prevention. You can change this choice here. Start.io also provides its own privacy disclosure.</string>
+    <string name="ad_privacy_body">Google Mobile Ads processes device and advertising data to serve ads. Choose whether to allow personalized ads. Non-personalized ads still process data needed for delivery and fraud prevention. You can change this choice here.</string>
+    <string name="reward_verification_pending">Your reward is still being verified. Your recording is safe; refresh the online balance shortly to continue.</string>
     <string name="ad_personalized">Allow personalized ads</string>
     <string name="ad_nonpersonalized">Use non-personalized ads</string>
     <string name="online_audio_limit">Online audio must have a readable duration, be no longer than 10 minutes, and fit within 25 MiB.</string>

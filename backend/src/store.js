@@ -84,7 +84,7 @@ export class MemoryStore {
     installation.lastGrantSessionId = sessionId;
     installation.activeAdSessionId = null;
     session.verified = true;
-    session.rewardEvidence = session.provider === "startio" ? "client-reported" : "provider-verified";
+    session.rewardEvidence = expected.rewardEvidence ?? "provider-verified";
     session.transactionId = transactionId;
     this.transactions.add(transactionId);
     return { duplicate: false, rewardSeconds: session.rewardSeconds };
@@ -216,7 +216,7 @@ export class FirestoreStore {
       const installRef = this.i(session.installationId); const installSnap = await tx.get(installRef); const install = installSnap.data();
       const current = install.creditExpiresAt > this.now() ? install.creditSeconds : 0;
       tx.update(installRef, { creditSeconds: current + session.rewardSeconds, creditExpiresAt: Math.max(install.creditExpiresAt, this.now() + CREDIT_TTL_MS), lastGrantSessionId: sessionId, activeAdSessionId: FieldValue.delete() });
-      tx.update(sessionRef, { verified: true, transactionId, verifiedAt: this.now(), rewardEvidence: session.provider === "startio" ? "client-reported" : "provider-verified" });
+      tx.update(sessionRef, { verified: true, transactionId, verifiedAt: this.now(), rewardEvidence: expected.rewardEvidence ?? "provider-verified" });
       tx.create(transactionRef, { sessionId, installationId: session.installationId, createdAt: this.now() });
       return { duplicate: false, rewardSeconds: session.rewardSeconds };
     });

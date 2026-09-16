@@ -1,6 +1,6 @@
 # TriSpeech
 
-Start.io rewarded GPT-4o Mini integration: see [setup and verification](docs/startio-setup.md). Live activation requires publisher configuration; debug ads are test-only. The TokenMix backend remains in use.
+Google Mobile Ads rewarded ads provide online-transcription credit. Debug builds always use Google's official sample app and rewarded-ad IDs; release IDs must be supplied at build time. The TokenMix backend remains in use.
 
 TriSpeech is a free-first monochrome Android transcription studio with ad-supported GPT-4o Mini, on-device `whisper.cpp`, and Android native speech recognition.
 
@@ -10,7 +10,7 @@ TriSpeech is a free-first monochrome Android transcription studio with ad-suppor
 .\gradlew.bat testDebugUnitTest compileDebugAndroidTestKotlin lintDebug assembleDebug
 ```
 
-The project targets Android API 36 and requires JDK 17 or newer. Android debug builds call the V1 backend at `http://10.0.2.2:8080`; release builds require an HTTPS `TRISPEECH_BACKEND_URL`.
+The project targets Android API 36 and requires JDK 17 or newer. Android debug builds call the V1 backend at `http://10.0.2.2:8080`; release builds require `TRISPEECH_BACKEND_URL`, `ADMOB_APP_ID`, and `ADMOB_REWARDED_AD_UNIT_ID` Gradle properties. Release configuration rejects test IDs and missing HTTPS backend configuration.
 
 Provider credentials never belong in the Android build. See [backend/README.md](backend/README.md) for the anonymous installation, rewarded-ad SSV, credit, upload, job, provider-fallback, and Cloud Run setup.
 

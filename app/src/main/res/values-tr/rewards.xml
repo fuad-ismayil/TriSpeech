@@ -14,7 +14,8 @@
     <string name="online_preview_access">Bu sunucu reklamsız geliştirme önizlemesi erişimi sağlar.</string>
     <string name="pending_audio_credit">Sesiniz kaydedildi. %1$d saniyelik çevrimiçi kredi gerekiyor.</string>
     <string name="test_ads_notice">Test reklamları gelir oluşturmaz.</string>
-    <string name="ad_privacy_body">Start.io reklam sunmak için cihaz ve reklam verilerini işler. Kişiselleştirilmiş reklamlara izin verip vermeyeceğinizi seçin. Kişiselleştirilmemiş reklamlar da sunum ve dolandırıcılığı önlemek için veri işler. Seçiminizi buradan değiştirebilirsiniz. Start.io ayrıca kendi gizlilik açıklamasını sunar.</string>
+    <string name="ad_privacy_body">Google Mobile Ads reklam sunmak için cihaz ve reklam verilerini işler. Kişiselleştirilmiş reklamlara izin verip vermeyeceğinizi seçin. Kişiselleştirilmemiş reklamlar da sunum ve dolandırıcılığı önlemek için veri işler. Seçiminizi buradan değiştirebilirsiniz.</string>
+    <string name="reward_verification_pending">Ödülünüz hâlâ doğrulanıyor. Kaydınız güvende; devam etmek için kısa süre sonra çevrimiçi bakiyeyi yenileyin.</string>
     <string name="ad_personalized">Kişiselleştirilmiş reklamlara izin ver</string>
     <string name="ad_nonpersonalized">Kişiselleştirilmemiş reklamları kullan</string>
     <string name="online_audio_limit">Çevrimiçi sesin süresi okunabilir olmalı, 10 dakikayı ve 25 MiB sınırını aşmamalıdır.</string>

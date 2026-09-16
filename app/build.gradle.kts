@@ -7,20 +7,28 @@ plugins {
 
 fun buildConfigString(value: String): String = "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
-val validateLiveAds by tasks.registering {
+val debugAdMobAppId = "ca-app-pub-3940256099942544~3347511713"
+val debugRewardedAdUnitId = "ca-app-pub-3940256099942544/5224354917"
+val releaseAdMobAppId = providers.gradleProperty("ADMOB_APP_ID").orNull.orEmpty()
+val releaseRewardedAdUnitId = providers.gradleProperty("ADMOB_REWARDED_AD_UNIT_ID").orNull.orEmpty()
+
+val validateReleaseConfiguration by tasks.registering {
     doLast {
-        if (providers.gradleProperty("STARTIO_LIVE_ADS").orNull == "true") {
-            check(providers.gradleProperty("STARTIO_APP_ID").orNull?.matches(Regex("[0-9]+")) == true) {
-                "Live ads require your numeric STARTIO_APP_ID."
-            }
-            val backendUrl = providers.gradleProperty("TRISPEECH_BACKEND_URL").orNull.orEmpty()
-            check(backendUrl.startsWith("https://") && !backendUrl.contains(".invalid")) {
-                "Live ads require a configured HTTPS TRISPEECH_BACKEND_URL."
-            }
+        check(releaseAdMobAppId.matches(Regex("ca-app-pub-[0-9]{16}~[0-9]{10}"))) {
+            "Release builds require ADMOB_APP_ID from Gradle properties."
+        }
+        check(releaseAdMobAppId != debugAdMobAppId) { "Release builds cannot use Google's sample AdMob app ID." }
+        check(releaseRewardedAdUnitId.matches(Regex("ca-app-pub-[0-9]{16}/[0-9]{10}"))) {
+            "Release builds require ADMOB_REWARDED_AD_UNIT_ID from Gradle properties."
+        }
+        check(releaseRewardedAdUnitId != debugRewardedAdUnitId) { "Release builds cannot use Google's rewarded test ad unit." }
+        val backendUrl = providers.gradleProperty("TRISPEECH_BACKEND_URL").orNull.orEmpty()
+        check(backendUrl.startsWith("https://") && !backendUrl.contains(".invalid")) {
+            "Release builds require a configured HTTPS TRISPEECH_BACKEND_URL."
         }
     }
 }
-tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(validateLiveAds) }
+tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(validateReleaseConfiguration) }
 
 android {
     namespace = "com.trispeech.app"
@@ -32,7 +40,6 @@ android {
         targetSdk = 36
         versionCode = 6
         versionName = "1.2.0"
-        buildConfigField("String", "STARTIO_APP_ID", buildConfigString(providers.gradleProperty("STARTIO_APP_ID").orNull ?: ""))
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         externalNativeBuild {
@@ -65,12 +72,16 @@ android {
             if (providers.gradleProperty("TRISPEECH_SCREENSHOT_BUILD").orNull == "true") {
                 applicationIdSuffix = ".storepreview"
             }
-            buildConfigField("boolean", "STARTIO_TEST_ADS", "true")
+            manifestPlaceholders["admobAppId"] = debugAdMobAppId
+            buildConfigField("String", "ADMOB_REWARDED_AD_UNIT_ID", buildConfigString(debugRewardedAdUnitId))
+            buildConfigField("boolean", "ADMOB_TEST_ADS", "true")
             isMinifyEnabled = false
             buildConfigField("String", "BACKEND_BASE_URL", buildConfigString(providers.gradleProperty("TRISPEECH_BACKEND_URL").orNull ?: "http://10.0.2.2:8080"))
         }
         release {
-            buildConfigField("boolean", "STARTIO_TEST_ADS", (providers.gradleProperty("STARTIO_LIVE_ADS").orNull != "true").toString())
+            manifestPlaceholders["admobAppId"] = releaseAdMobAppId
+            buildConfigField("String", "ADMOB_REWARDED_AD_UNIT_ID", buildConfigString(releaseRewardedAdUnitId))
+            buildConfigField("boolean", "ADMOB_TEST_ADS", "false")
             isMinifyEnabled = true
             buildConfigField("String", "BACKEND_BASE_URL", buildConfigString(providers.gradleProperty("TRISPEECH_BACKEND_URL").orNull ?: "https://replace-before-release.invalid"))
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -90,7 +101,8 @@ ksp {
 }
 
 dependencies {
-    implementation("com.startapp:inapp-sdk:5.3.1")
+    // 24.1+ requires Kotlin 2.1; TriSpeech's current toolchain is Kotlin 2.0.21.
+    implementation("com.google.android.gms:play-services-ads:24.0.0")
     implementation(platform("androidx.compose:compose-bom:2024.11.00"))
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.activity:activity-compose:1.9.3")
@@ -106,6 +118,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.8.7")
     implementation("androidx.work:work-runtime-ktx:2.10.0")
+    // WorkManager exposes ListenableFuture; the Ads SDK's conflict guard requires the full implementation.
+    implementation("com.google.guava:guava:33.4.8-android")
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")

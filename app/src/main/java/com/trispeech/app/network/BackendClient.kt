@@ -44,7 +44,8 @@ class BackendClient(
         val credits = executeJson(signedRequest("GET", "/v1/credits", null, UUID.randomUUID().toString()))
         OnlineAccess(config.optBoolean("onlineEnabled"), config.optString("accessMode"),
             config.optString("adProvider"), config.optInt("rewardSeconds", 60),
-            credits.optInt("availableSeconds"), config.optBoolean("testRewards"))
+            credits.optInt("availableSeconds"), config.optBoolean("testRewards"),
+            credits.optString("lastGrantSessionId").ifBlank { null })
     }
 
     suspend fun createAdSession(): AdSession = withContext(Dispatchers.IO) {
@@ -53,10 +54,10 @@ class BackendClient(
         AdSession(result.getString("sessionId"), result.getInt("rewardSeconds"))
     }
 
-    suspend fun completeStartIoReward(sessionId: String): Unit = withContext(Dispatchers.IO) {
+    suspend fun completeAdMobTestReward(sessionId: String): Unit = withContext(Dispatchers.IO) {
         ensureRegistered()
-        val body = JSONObject().put("sessionId", sessionId).put("testAd", BuildConfig.STARTIO_TEST_ADS).toString()
-        executeJson(signedRequest("POST", "/v1/startio/completions", body, sessionId))
+        val body = JSONObject().put("sessionId", sessionId).put("testAd", BuildConfig.ADMOB_TEST_ADS).toString()
+        executeJson(signedRequest("POST", "/v1/admob/test-completions", body, sessionId))
         Unit
     }
 
@@ -181,7 +182,15 @@ class BackendClient(
     }
 }
 
-data class OnlineAccess(val enabled: Boolean, val mode: String, val provider: String, val rewardSeconds: Int, val availableSeconds: Int, val testRewards: Boolean)
+data class OnlineAccess(
+    val enabled: Boolean,
+    val mode: String,
+    val provider: String,
+    val rewardSeconds: Int,
+    val availableSeconds: Int,
+    val testRewards: Boolean,
+    val lastGrantSessionId: String?
+)
 data class AdSession(val id: String, val rewardSeconds: Int)
 class BackendException(val status: Int, message: String) : IOException(message)
 

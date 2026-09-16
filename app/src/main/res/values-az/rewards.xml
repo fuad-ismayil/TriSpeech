@@ -14,7 +14,8 @@
     <string name="online_preview_access">Bu server reklamsız sınaq girişi təqdim edir.</string>
     <string name="pending_audio_credit">Audionuz saxlanılıb. %1$d saniyə onlayn kredit lazımdır.</string>
     <string name="test_ads_notice">Test reklamları gəlir gətirmir.</string>
-    <string name="ad_privacy_body">Start.io reklam göstərmək üçün cihaz və reklam məlumatlarını emal edir. Fərdiləşdirilmiş reklamlara icazə verib-vermədiyinizi seçin. Fərdiləşdirilməmiş reklamlar da göstərilmə və saxtakarlığın qarşısının alınması üçün məlumat emal edir. Seçimi burada dəyişə bilərsiniz. Start.io öz məxfilik açıqlamasını da təqdim edir.</string>
+    <string name="ad_privacy_body">Google Mobile Ads reklam göstərmək üçün cihaz və reklam məlumatlarını emal edir. Fərdiləşdirilmiş reklamlara icazə verib-vermədiyinizi seçin. Fərdiləşdirilməmiş reklamlar da göstərilmə və saxtakarlığın qarşısının alınması üçün məlumat emal edir. Seçimi burada dəyişə bilərsiniz.</string>
+    <string name="reward_verification_pending">Mükafatınız hələ yoxlanılır. Səs yazınız təhlükəsizdir; davam etmək üçün qısa müddətdən sonra onlayn balansı yeniləyin.</string>
     <string name="ad_personalized">Fərdiləşdirilmiş reklamlara icazə ver</string>
     <string name="ad_nonpersonalized">Fərdiləşdirilməmiş reklamlardan istifadə et</string>
     <string name="online_audio_limit">Onlayn audionun müddəti oxuna bilməli, 10 dəqiqədən və 25 MiB-dan çox olmamalıdır.</string>

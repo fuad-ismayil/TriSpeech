@@ -1,8 +1,6 @@
 -keep class com.trispeech.app.nativebridge.** { *; }
 -keepclasseswithmembernames class * { native <methods>; }
 -dontwarn org.conscrypt.**
--keep class com.startapp.** { *; }
--keep class com.truenet.** { *; }
 -keepattributes Exceptions,InnerClasses,Signature,Deprecated,SourceFile,LineNumberTable,*Annotation*,EnclosingMethod
 -dontwarn android.webkit.JavascriptInterface
 -dontwarn org.jetbrains.annotations.**

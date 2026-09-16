@@ -80,12 +80,12 @@ app.post("/v1/installations/register", async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-app.get("/v1/config", authenticate, (_req, res) => res.json({
+app.get("/v1/config", authenticate, (req, res) => res.json({
   onlineEnabled: onlineEnabled(), model: "gpt-4o-mini-transcribe", maxUploadBytes: 25 * 1024 * 1024,
   maxDurationSeconds: 600, accessMode: developmentAccessMode ? "development-preview" : "rewarded-credit",
-  adProvider: rewards.provider, rewardSeconds: rewards.provider === "startio" ? rewards.seconds : null,
+  adProvider: "admob", rewardSeconds: marketReward(marketFor(req), economics, targetMargin),
   testRewards: rewards.testRewards,
-  rewardEvidence: rewards.provider === "startio" ? "client-reported" : "provider-verified",
+  rewardEvidence: rewards.clientRewards ? "test-client-reported" : "provider-verified",
   supportUrl: "https://kofe.al/@fuadismayil"
 }));
 
@@ -97,23 +97,24 @@ app.post("/v1/ad-sessions", authenticate, async (req, res, next) => {
   try {
     if (!onlineEnabled()) throw httpError("Online transcription is temporarily unavailable.", 503);
     if (developmentAccessMode) throw httpError("Preview access does not require ads.", 409);
-    if (rewards.provider === "startio" && !rewards.clientRewards) throw httpError("Start.io reward activation is pending.", 503);
-    const reward = rewards.provider === "startio" ? rewards.seconds : marketReward(marketFor(req), economics, targetMargin);
+    const reward = marketReward(marketFor(req), economics, targetMargin);
     if (reward < 30) throw httpError("Online access is not currently sustainable in this market.", 503);
-    const session = await store.createAdSession(req.installationId, req.get("Idempotency-Key"), reward, { provider: rewards.provider, testAd: rewards.testRewards });
+    const session = await store.createAdSession(req.installationId, req.get("Idempotency-Key"), reward, { provider: "admob", testAd: rewards.testRewards });
     res.status(201).json({ sessionId: session.id, rewardSeconds: session.rewardSeconds, expiresAtEpochMs: session.expiresAt });
   } catch (error) { next(error); }
 });
 
-// This endpoint accepts client evidence for the explicitly enabled experiment.
-// Request authentication and replay protection do NOT prove ad viewing.
-app.post("/v1/startio/completions", authenticate, async (req, res, next) => {
+// Google's sample ad unit cannot be configured with an SSV callback. This endpoint is
+// therefore limited to explicitly enabled test ads; production rewards always use SSV.
+app.post("/v1/admob/test-completions", authenticate, async (req, res, next) => {
   try {
-    if (rewards.provider !== "startio" || !rewards.clientRewards || developmentAccessMode) throw httpError("Start.io rewards are disabled.", 503);
+    if (!rewards.clientRewards || !rewards.testRewards || developmentAccessMode) throw httpError("Client-reported test rewards are disabled.", 503);
     const { sessionId, testAd } = req.body ?? {};
     if (!/^[a-f0-9]{64}$/.test(sessionId ?? "") || typeof testAd !== "boolean") throw httpError("Invalid completion.");
-    if (testAd !== rewards.testRewards) throw httpError("Test and live reward environments must match.", 403);
-    await store.grantAdReward(sessionId, `startio-${sessionId}`, { installationId: req.installationId, provider: "startio", testAd });
+    if (!testAd) throw httpError("Only test ads may use client completion.", 403);
+    await store.grantAdReward(sessionId, `admob-test-${sessionId}`, {
+      installationId: req.installationId, provider: "admob", testAd: true, rewardEvidence: "test-client-reported"
+    });
     res.json(await store.credits(req.installationId));
   } catch (error) { next(error); }
 });

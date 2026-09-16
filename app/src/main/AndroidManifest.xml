@@ -21,11 +21,10 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="false"
         android:theme="@style/Theme.TriSpeech">
-        <!-- Initialize only after the user opens online access and chooses ad privacy. -->
-        <provider android:name="com.startapp.sdk.adsbase.StartAppInitProvider"
-            android:authorities="${applicationId}.startappinitprovider" tools:node="remove" />
-        <meta-data android:name="com.startapp.sdk.SPLASH_ENABLED" android:value="false" />
-        <meta-data android:name="com.startapp.sdk.RETURN_ADS_ENABLED" android:value="false" />
+        <!-- The SDK is initialized only after the user opens online access and chooses ad privacy. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="${admobAppId}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

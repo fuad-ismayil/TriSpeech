@@ -46,7 +46,7 @@ internal fun BalanceDialog(state: RewardState, rewards: OnlineRewards, activity:
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(stringResource(R.string.reward_expiry))
-                if (BuildConfig.STARTIO_TEST_ADS) {
+                if (BuildConfig.ADMOB_TEST_ADS) {
                     Spacer(Modifier.height(8.dp))
                     Text(stringResource(R.string.test_ads_notice))
                 }
@@ -56,7 +56,7 @@ internal fun BalanceDialog(state: RewardState, rewards: OnlineRewards, activity:
                 }
                 Spacer(Modifier.height(14.dp))
                 Button(
-                    enabled = !state.busy && access?.enabled == true && access.provider == "startio" && access.mode == "rewarded-credit" && activity != null,
+                    enabled = !state.busy && access?.enabled == true && access.provider == "admob" && access.mode == "rewarded-credit" && activity != null,
                     onClick = {
                         if (!rewards.hasPrivacyChoice) privacy = true
                         else activity?.let { rewards.watch(it) }
