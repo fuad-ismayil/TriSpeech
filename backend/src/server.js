@@ -46,7 +46,10 @@ app.get("/callbacks/admob/ssv", async (req, res, next) => {
     const verified = await verifyAdMobSsv(req.originalUrl, rewards.ssv);
     await store.grantAdReward(verified.sessionId, verified.transactionId, { provider: "admob" });
     res.status(200).send("ok");
-  } catch (error) { next(error); }
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "admob_ssv_rejected", status: error.status ?? 500, message: error.message }));
+    next(error);
+  }
 });
 
 app.put(
